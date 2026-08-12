@@ -2,6 +2,8 @@
 
 Cadence is a browser-based piano education studio built for a Casio CT-S1 or any class-compliant MIDI keyboard. It combines real-time Web MIDI input, structured classical study, theory and harmony, ear and touch training, improvisation, composition projects, production thinking, and device-local progress.
 
+**Live app:** [cadence-piano-lab.vercel.app](https://cadence-piano-lab.vercel.app)
+
 ## Run locally
 
 Requirements:
