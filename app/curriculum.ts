@@ -54,6 +54,7 @@ export type Course = {
     edition: string;
     scoreUrl: string;
     totalMeasures: number;
+    practiceBpm: number;
     sections: ScoreSection[];
     completeWork: boolean;
   };
@@ -268,6 +269,7 @@ export const COURSES: Course[] = [
       edition: "Complete right-hand melody study",
       scoreUrl: "/scores/ode-to-joy.mxl",
       totalMeasures: 17,
+      practiceBpm: 88,
       completeWork: true,
       sections: [
         { title: "Phrase A", measures: [1, 4], focus: "Repeated notes with direction", harmony: "Tonic to dominant" },
@@ -299,6 +301,7 @@ export const COURSES: Course[] = [
       edition: "BWV 846 complete guided study",
       scoreUrl: "/scores/bach-prelude-c.mxl",
       totalMeasures: 34,
+      practiceBpm: 60,
       completeWork: true,
       sections: [
         { title: "Home", measures: [1, 4], focus: "Establish the five-note pattern", harmony: "C major and first departure" },
@@ -331,6 +334,7 @@ export const COURSES: Course[] = [
       edition: "BWV Anh. 114 complete guided study",
       scoreUrl: "/scores/minuet-in-g.mxl",
       totalMeasures: 32,
+      practiceBpm: 92,
       completeWork: true,
       sections: [
         { title: "Opening dance", measures: [1, 8], focus: "Light pickup and three-beat direction", harmony: "G major to D" },
@@ -361,6 +365,7 @@ export const COURSES: Course[] = [
       edition: "Gymnopédie No. 1 complete form study",
       scoreUrl: "/scores/gymnopedie-no-1.mxl",
       totalMeasures: 47,
+      practiceBpm: 68,
       completeWork: true,
       sections: [
         { title: "Opening atmosphere", measures: [1, 8], focus: "Separate bass, chord, and silence", harmony: "Alternating extended sonorities" },
@@ -393,6 +398,7 @@ export const COURSES: Course[] = [
       edition: "Op. 28 No. 4 complete guided study",
       scoreUrl: "/scores/chopin-prelude-e-minor.mxl",
       totalMeasures: 26,
+      practiceBpm: 52,
       completeWork: true,
       sections: [
         { title: "Opening suspension", measures: [1, 4], focus: "Keep the melody separate from the chord", harmony: "E minor with delayed resolution" },

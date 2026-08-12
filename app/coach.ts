@@ -72,6 +72,74 @@ export type PracticeDrill = {
   reason: string;
 };
 
+export type ReviewTeachingInput = {
+  title: string;
+  kind: "learn" | "listen" | "sequence" | "chord" | "quiz" | "improv" | "compose";
+  body: string;
+  why: string;
+  hint?: string;
+  listenFor?: string;
+  quality: number;
+  repetitions: number;
+  preferences: string[];
+};
+
+export type ReviewTeachingVariant = {
+  strategy: string;
+  title: string;
+  diagnostic: string;
+  explanation: string;
+  transfer: string;
+  whyChanged: string;
+};
+
+function interestTransfer(preferences: string[], title: string) {
+  if (preferences.includes("Film & game music")) return `Scoring transfer: use the same idea once as stability and once as uncertainty. Change context before changing the notes.`;
+  if (preferences.includes("Ambient")) return `Ambient transfer: spread the idea across register and decay, then check whether its function survives when attacks become less obvious.`;
+  if (preferences.includes("Songwriting")) return `Songwriting transfer: place the idea beneath a simple vocal phrase and decide whether it supports a verse, lift, or arrival.`;
+  if (preferences.includes("Music production")) return `Production transfer: treat ${title.toLowerCase()} as editable material. Keep its musical function fixed while changing register, sound, or texture.`;
+  if (preferences.includes("Improvisation")) return `Improvisation transfer: answer the idea with one changed property while preserving enough of it to remain recognizable.`;
+  return `Transfer: demonstrate ${title.toLowerCase()} from a different starting note or musical context without rereading the original wording.`;
+}
+
+export function getReviewTeachingVariant(input: ReviewTeachingInput): ReviewTeachingVariant {
+  const weak = input.quality < 65;
+  const secure = input.quality >= 88;
+  const rotation = input.repetitions % 3;
+  const kindPrompt = {
+    learn: "Explain the mechanism in one sentence, then prove it with sound.",
+    listen: "Imagine the sound first. Name one feature to listen for before replaying it.",
+    sequence: "Play the first and final notes only. Sing or imagine the path between them, then restore the full phrase.",
+    chord: "Name root, third, and fifth before touching the keys. Build the chord in a different octave or inversion.",
+    quiz: "Answer without looking at the choices, then demonstrate why the other mechanisms fail.",
+    improv: "Create a two-bar answer that keeps one feature and deliberately changes another.",
+    compose: "Reduce the idea to its smallest recognizable cell, then develop it once without adding unrelated material.",
+  }[input.kind];
+  const strategies = weak
+    ? ["Reduce and rebuild", "Concrete contrast", "Sound before language"]
+    : secure
+      ? ["Transfer without cues", "Reverse the explanation", "Create a counterexample"]
+      : ["Contrast and connect", "Retrieve, then vary", "One-cause experiment"];
+  const strategy = strategies[rotation];
+  const explanation = weak
+    ? `The previous result suggests the full version carried too many decisions at once. Strip “${input.title}” down to one cause and one audible effect. ${input.hint ?? input.listenFor ?? input.why}`
+    : secure
+      ? `You no longer need the original wording as the main support. Use “${input.title}” as a tool: predict what will change, alter one condition, and explain the result after hearing it.`
+      : `Reconnect the idea through contrast. Start with the familiar version of “${input.title},” change one defining feature, and listen for exactly which musical role disappears or emerges.`;
+  return {
+    strategy,
+    title: secure ? "Prove the idea survives transfer" : weak ? "Make one mechanism unmistakable" : "Reconnect sound, cause, and name",
+    diagnostic: kindPrompt,
+    explanation,
+    transfer: interestTransfer(input.preferences, input.title),
+    whyChanged: weak
+      ? `The last review quality was ${input.quality}%, so Cadence reduced complexity and changed the explanation instead of repeating it.`
+      : secure
+        ? `The last review quality was ${input.quality}%, so this attempt removes support and asks for transfer rather than repetition.`
+        : `The last review quality was ${input.quality}%, so this attempt uses contrast to strengthen the connection without starting over.`,
+  };
+}
+
 /**
  * Drop-in AI boundary. The MVP uses deterministic coaching so it works without
  * an API key. Replace this function with a server-side LLM call later.

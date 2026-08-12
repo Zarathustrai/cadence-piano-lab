@@ -1,22 +1,53 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import type { ScoreSection } from "./curriculum";
+import { evaluateScoreSession } from "./learning-engine.mjs";
 
 type PlayedNoteEvent = { midi: number; token: number } | null;
+
+export type ScoreSessionResult = {
+  id: string;
+  section: string;
+  completedAt: string;
+  accuracy: number;
+  rhythm: number;
+  continuity: number;
+  tempo: number;
+  positions: number;
+  mistakes: number;
+  timingSamples: number;
+};
 
 type ScoreReaderProps = {
   title: string;
   composer: string;
   scoreUrl: string;
   totalMeasures: number;
+  practiceBpm: number;
   sections: ScoreSection[];
   playedNote: PlayedNoteEvent;
   completedMeasures: number[];
   onMeasureComplete: (measure: number) => void;
   onFeedback: (message: string) => void;
+  onSessionResult: (result: ScoreSessionResult) => void;
+  onSectionChange?: (sectionIndex: number) => void;
+  analysis?: ReactNode;
 };
+
+type SessionCapture = {
+  correct: number;
+  mistakes: number;
+  timingRatios: number[];
+  pauses: number;
+  lastAcceptedAt: number | null;
+  lastScoreTime: number | null;
+};
+
+function emptySession(): SessionCapture {
+  return { correct: 0, mistakes: 0, timingRatios: [], pauses: 0, lastAcceptedAt: null, lastScoreTime: null };
+}
 
 function midiFromFrequency(frequency: number) {
   return Math.round(69 + 12 * Math.log2(frequency / 440));
@@ -32,16 +63,21 @@ export function ScoreReader({
   composer,
   scoreUrl,
   totalMeasures,
+  practiceBpm,
   sections,
   playedNote,
   completedMeasures,
   onMeasureComplete,
   onFeedback,
+  onSessionResult,
+  onSectionChange,
+  analysis,
 }: ScoreReaderProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
   const matchedNotesRef = useRef<Set<number>>(new Set());
   const activeSectionRef = useRef(0);
+  const sessionRef = useRef<SessionCapture>(emptySession());
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [currentMeasure, setCurrentMeasure] = useState(1);
   const [activeSection, setActiveSection] = useState(0);
@@ -49,6 +85,32 @@ export function ScoreReader({
   const [loopSection, setLoopSection] = useState(true);
   const [expectedNotes, setExpectedNotes] = useState<number[]>([]);
   const [matchedCount, setMatchedCount] = useState(0);
+  const [targetBpm, setTargetBpm] = useState(practiceBpm);
+  const [liveSession, setLiveSession] = useState(() => evaluateScoreSession({ tempo: practiceBpm }));
+
+  const refreshLiveSession = useCallback(() => {
+    const metrics = evaluateScoreSession({ ...sessionRef.current, tempo: targetBpm });
+    setLiveSession(metrics);
+    return metrics;
+  }, [targetBpm]);
+
+  const resetSession = useCallback(() => {
+    sessionRef.current = emptySession();
+    setLiveSession(evaluateScoreSession({ tempo: targetBpm }));
+  }, [targetBpm]);
+
+  const saveSession = useCallback((sectionTitle: string) => {
+    if (sessionRef.current.correct < 2) return null;
+    const metrics = evaluateScoreSession({ ...sessionRef.current, tempo: targetBpm });
+    const result: ScoreSessionResult = {
+      id: `${Date.now()}-${sectionTitle}`,
+      section: sectionTitle,
+      completedAt: new Date().toISOString(),
+      ...metrics,
+    };
+    onSessionResult(result);
+    return result;
+  }, [onSessionResult, targetBpm]);
 
   const readExpectedNotes = useCallback(() => {
     const osmd = osmdRef.current;
@@ -73,8 +135,9 @@ export function ScoreReader({
     if (sectionIndex >= 0) {
       activeSectionRef.current = sectionIndex;
       setActiveSection(sectionIndex);
+      onSectionChange?.(sectionIndex);
     }
-  }, [readExpectedNotes, sections, totalMeasures]);
+  }, [onSectionChange, readExpectedNotes, sections, totalMeasures]);
 
   const jumpToMeasure = useCallback((measure: number) => {
     const osmd = osmdRef.current;
@@ -87,12 +150,15 @@ export function ScoreReader({
   }, [updateCursorState]);
 
   const chooseSection = useCallback((index: number) => {
+    saveSession(sections[activeSectionRef.current]?.title ?? "Score practice");
+    resetSession();
     const section = sections[index];
     activeSectionRef.current = index;
     setActiveSection(index);
+    onSectionChange?.(index);
     jumpToMeasure(section.measures[0]);
     onFeedback(`${section.title}, measures ${section.measures[0]}–${section.measures[1]}. ${section.focus}.`);
-  }, [jumpToMeasure, onFeedback, sections]);
+  }, [jumpToMeasure, onFeedback, onSectionChange, resetSession, saveSession, sections]);
 
   useEffect(() => {
     let disposed = false;
@@ -119,6 +185,7 @@ export function ScoreReader({
         osmdRef.current = osmd;
         setStatus("ready");
         setCurrentMeasure(1);
+        onSectionChange?.(0);
         setExpectedNotes(
           [...new Set(
             osmd.cursor
@@ -137,7 +204,7 @@ export function ScoreReader({
       osmdRef.current?.cursor.Dispose();
       osmdRef.current = null;
     };
-  }, [scoreUrl]);
+  }, [onSectionChange, scoreUrl]);
 
   useEffect(() => {
     if (!playedNote || !following || status !== "ready") return;
@@ -154,6 +221,8 @@ export function ScoreReader({
     setExpectedNotes(expected);
 
     if (!expected.includes(playedNote.midi)) {
+      sessionRef.current.mistakes += 1;
+      refreshLiveSession();
       onFeedback(
         expected.length
           ? `${nameMidi(playedNote.midi)} is not in this score position. Listen for ${expected.map(nameMidi).join(" and ")}.`
@@ -172,6 +241,21 @@ export function ScoreReader({
     }
 
     const completedMeasure = osmd.cursor.Iterator.CurrentMeasureIndex + 1;
+    const acceptedAt = performance.now();
+    const scoreTime = osmd.cursor.Iterator.CurrentSourceTimestamp.RealValue;
+    if (sessionRef.current.lastAcceptedAt !== null && sessionRef.current.lastScoreTime !== null) {
+      const scoreDistanceInWholeNotes = scoreTime - sessionRef.current.lastScoreTime;
+      if (scoreDistanceInWholeNotes > 0) {
+        const expectedGap = scoreDistanceInWholeNotes * 4 * (60000 / targetBpm);
+        const actualGap = acceptedAt - sessionRef.current.lastAcceptedAt;
+        sessionRef.current.timingRatios.push(actualGap / expectedGap);
+        if (actualGap > expectedGap * 1.85 + 120) sessionRef.current.pauses += 1;
+      }
+    }
+    sessionRef.current.correct += 1;
+    sessionRef.current.lastAcceptedAt = acceptedAt;
+    sessionRef.current.lastScoreTime = scoreTime;
+    const metrics = refreshLiveSession();
     matchedNotesRef.current.clear();
     setMatchedCount(0);
     osmd.cursor.next();
@@ -181,14 +265,16 @@ export function ScoreReader({
 
     const section = sections[activeSectionRef.current];
     if (loopSection && nextMeasure > section.measures[1]) {
+      const saved = saveSession(section.title) ?? metrics;
+      resetSession();
       jumpToMeasure(section.measures[0]);
-      onFeedback(`${section.title} complete. Looping back to measure ${section.measures[0]} for one more musical pass.`);
+      onFeedback(`${section.title} complete at ${targetBpm} BPM. Pitch ${saved.accuracy}%, rhythm ${saved.timingSamples ? `${saved.rhythm}%` : "still calibrating"}. Looping for one more musical pass.`);
       return;
     }
 
     updateCursorState();
     onFeedback(`Correct. The score has moved forward${nextMeasure > completedMeasure ? ` into measure ${nextMeasure}` : ""}.`);
-  }, [following, jumpToMeasure, loopSection, onFeedback, onMeasureComplete, playedNote, readExpectedNotes, sections, status, updateCursorState]);
+  }, [following, jumpToMeasure, loopSection, onFeedback, onMeasureComplete, playedNote, readExpectedNotes, refreshLiveSession, resetSession, saveSession, sections, status, targetBpm, updateCursorState]);
 
   const section = sections[activeSection];
   const sectionCompleted = Array.from(
@@ -215,13 +301,26 @@ export function ScoreReader({
                 if (next) osmdRef.current.cursor.show();
                 else osmdRef.current.cursor.hide();
               }
-              onFeedback(next ? `Score following started at measure ${currentMeasure}. Play what the blue cursor shows.` : "Score following paused.");
+              if (next) {
+                resetSession();
+                onFeedback(`Score following started at measure ${currentMeasure}, ${targetBpm} BPM. Play what the blue cursor shows and keep the pulse moving.`);
+              } else {
+                const result = saveSession(section.title);
+                onFeedback(result ? `Practice saved. Pitch ${result.accuracy}%, rhythm ${result.timingSamples ? `${result.rhythm}%` : "still calibrating"}, continuity ${result.continuity}%.` : "Score following paused. Play at least two score positions to save a performance result.");
+              }
             }}
             disabled={status !== "ready"}
           >
             <i /> {following ? "Following your playing" : "Follow my playing"}
           </button>
           <button className={loopSection ? "score-loop active" : "score-loop"} onClick={() => setLoopSection((value) => !value)} aria-pressed={loopSection}>↻ Loop section</button>
+          <label className="score-tempo-control"><span>{targetBpm} BPM</span><input aria-label="Score practice tempo" type="range" min="36" max="126" value={targetBpm} onChange={(event) => {
+            const nextTempo = Number(event.target.value);
+            if (following) saveSession(section.title);
+            sessionRef.current = emptySession();
+            setTargetBpm(nextTempo);
+            setLiveSession(evaluateScoreSession({ tempo: nextTempo }));
+          }} /></label>
         </div>
       </div>
 
@@ -242,6 +341,16 @@ export function ScoreReader({
         <div><span>Measure</span><strong>{currentMeasure} / {totalMeasures}</strong></div>
         <div><span>Focus</span><strong>{section.focus}</strong></div>
         <div><span>Harmony</span><strong>{section.harmony}</strong></div>
+      </div>
+
+      {analysis}
+
+      <div className="score-session-metrics" aria-label="Live score practice assessment">
+        <div><span>Pitch accuracy</span><strong>{liveSession.positions ? `${liveSession.accuracy}%` : "–"}</strong></div>
+        <div><span>Rhythm</span><strong>{liveSession.timingSamples ? `${liveSession.rhythm}%` : "–"}</strong></div>
+        <div><span>Continuity</span><strong>{liveSession.positions > 1 ? `${liveSession.continuity}%` : "–"}</strong></div>
+        <div><span>Evidence</span><strong>{liveSession.positions} positions</strong></div>
+        <p>Rhythm compares your spacing with the score at {targetBpm} BPM. Continuity notices recovery pauses without punishing expressive touch.</p>
       </div>
 
       <div className={`score-paper ${status}`}>
