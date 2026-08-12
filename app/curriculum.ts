@@ -32,6 +32,13 @@ export type LessonStep = {
   answerExplanation?: string;
 };
 
+export type ScoreSection = {
+  title: string;
+  measures: [number, number];
+  focus: string;
+  harmony: string;
+};
+
 export type Course = {
   id: string;
   number: string;
@@ -45,7 +52,9 @@ export type Course = {
   repertoire?: {
     composer: string;
     edition: string;
-    sections: string[];
+    scoreUrl: string;
+    totalMeasures: number;
+    sections: ScoreSection[];
     completeWork: boolean;
   };
 };
@@ -254,7 +263,19 @@ export const COURSES: Course[] = [
     duration: "3 sessions",
     outcome: "You can perform the complete beginner melody, shape its four phrases, and identify repetition and variation.",
     tags: ["Complete melody", "Phrasing", "Form"],
-    repertoire: { composer: "L. van Beethoven", edition: "Complete right-hand melody study", sections: ["Phrase A", "Phrase A varied", "Phrase B", "Final cadence"], completeWork: true },
+    repertoire: {
+      composer: "L. van Beethoven",
+      edition: "Complete right-hand melody study",
+      scoreUrl: "/scores/ode-to-joy.mxl",
+      totalMeasures: 17,
+      completeWork: true,
+      sections: [
+        { title: "Phrase A", measures: [1, 4], focus: "Repeated notes with direction", harmony: "Tonic to dominant" },
+        { title: "Phrase A varied", measures: [5, 8], focus: "Recognize the changed cadence", harmony: "Return to tonic" },
+        { title: "Phrase B", measures: [9, 12], focus: "Build toward the high point", harmony: "Predominant expansion" },
+        { title: "Final cadence", measures: [13, 17], focus: "Keep pulse through the ending", harmony: "Dominant to tonic" },
+      ],
+    },
     steps: [
       learn("ode-map", "Four phrases, not sixty notes", "The melody becomes manageable when heard as four sentences. Phrase A establishes the idea. Its varied repeat changes the ending. Phrase B climbs toward the high point. The final phrase closes more decisively.", "Form reduces memory load and tells you where to breathe.", [64, 64, 65, 67, 67, 65, 64, 62]),
       sequence("ode-a", "Phrase A", "Keep repeated notes alive by gently leaning toward G.", [64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 64, 62, 62], "The phrase rises, turns, and settles without losing the pulse."),
@@ -273,7 +294,20 @@ export const COURSES: Course[] = [
     duration: "8 sessions",
     outcome: "You can learn the complete prelude in sections, name its harmonic journey, and keep an even five-note texture.",
     tags: ["Complete work path", "Broken chords", "Harmony"],
-    repertoire: { composer: "J. S. Bach", edition: "BWV 846 complete guided study", sections: ["mm. 1–4: home", "mm. 5–11: departure", "mm. 12–19: sequence", "mm. 20–27: deep tension", "mm. 28–35: return"], completeWork: true },
+    repertoire: {
+      composer: "J. S. Bach",
+      edition: "BWV 846 complete guided study",
+      scoreUrl: "/scores/bach-prelude-c.mxl",
+      totalMeasures: 34,
+      completeWork: true,
+      sections: [
+        { title: "Home", measures: [1, 4], focus: "Establish the five-note pattern", harmony: "C major and first departure" },
+        { title: "Departure", measures: [5, 11], focus: "Follow the bass line", harmony: "Circle motion toward G" },
+        { title: "Sequence", measures: [12, 19], focus: "Preserve texture through change", harmony: "Sequential predominant motion" },
+        { title: "Deep tension", measures: [20, 27], focus: "Voice the dissonances without accenting", harmony: "Diminished and dominant regions" },
+        { title: "Return", measures: [28, 34], focus: "Shape one long arrival", harmony: "Cadential six-four to C" },
+      ],
+    },
     steps: [
       learn("bach-texture", "One pattern reveals many harmonies", "Each measure repeats a five-note broken-chord shape. The surface pattern stays nearly constant while the bass and inner voices change underneath. Learn the shape once, then read each measure as a chord and voice-leading event.", "Chunking by harmony is faster and more musical than memorizing 560 isolated notes.", [60,64,67,72,76,67,72,76], "Keep every note equal enough that harmonic changes, not accents, shape the line."),
       sequence("bach-m1", "Measure 1: C major", "Use the opening five-note cell, then repeat its upper three notes.", [48,52,55,60,64,55,60,64,55,60,64,55,60,64,55,60], "The entire work begins from transparent tonic stability."),
@@ -292,7 +326,19 @@ export const COURSES: Course[] = [
     duration: "6 sessions",
     outcome: "You can learn both repeated sections, coordinate hands, and make three beats feel like a dance rather than a count.",
     tags: ["Complete work path", "Two hands", "Articulation"],
-    repertoire: { composer: "C. Petzold, formerly attributed to Bach", edition: "BWV Anh. 114 complete guided study", sections: ["A1 melody", "A1 hands", "A2 cadence", "B sequence", "B minor color", "Complete repeats"], completeWork: true },
+    repertoire: {
+      composer: "C. Petzold, formerly attributed to Bach",
+      edition: "BWV Anh. 114 complete guided study",
+      scoreUrl: "/scores/minuet-in-g.mxl",
+      totalMeasures: 32,
+      completeWork: true,
+      sections: [
+        { title: "Opening dance", measures: [1, 8], focus: "Light pickup and three-beat direction", harmony: "G major to D" },
+        { title: "First cadence", measures: [9, 16], focus: "Coordinate voices at the cadence", harmony: "Dominant confirmation" },
+        { title: "Contrasting sequence", measures: [17, 24], focus: "Balance the imitative lines", harmony: "E minor and related colors" },
+        { title: "Return and close", measures: [25, 32], focus: "Recover the opening character", harmony: "Dominant to G major" },
+      ],
+    },
     steps: [
       learn("minuet-pulse", "Three beats with lift", "A minuet is in triple meter: one primary beat followed by two lighter beats. The phrase should move through each bar rather than land heavily three times.", "Style is encoded in weight, articulation, and direction, not only correct pitches.", [67,64,65,67,69,71,72,67], "Feel ONE two three, with the third beat leading forward."),
       sequence("minuet-opening", "Opening question", "Right hand only. Keep the pickup light and aim toward the upper D.", [67,64,65,67,69,71,72,67,67,64,65,67,69,71,72], "A rising sequence gives the opening its poised, conversational energy."),
@@ -310,7 +356,21 @@ export const COURSES: Course[] = [
     duration: "8 sessions",
     outcome: "You can study the complete form, voice melody above accompaniment, and use pedal as harmonic punctuation.",
     tags: ["Complete work path", "Pedal", "Voicing"],
-    repertoire: { composer: "Erik Satie", edition: "Complete form and section study", sections: ["Opening ostinato", "Theme A", "Cadential expansion", "Contrasting middle", "Return", "Complete performance"], completeWork: true },
+    repertoire: {
+      composer: "Erik Satie",
+      edition: "Gymnopédie No. 1 complete form study",
+      scoreUrl: "/scores/gymnopedie-no-1.mxl",
+      totalMeasures: 47,
+      completeWork: true,
+      sections: [
+        { title: "Opening atmosphere", measures: [1, 8], focus: "Separate bass, chord, and silence", harmony: "Alternating extended sonorities" },
+        { title: "Theme A", measures: [9, 16], focus: "Float melody above accompaniment", harmony: "Modal color over pedal points" },
+        { title: "Cadential expansion", measures: [17, 24], focus: "Change pedal with harmony", harmony: "Suspended cadential motion" },
+        { title: "Contrasting middle", measures: [25, 32], focus: "Let the new register change the light", harmony: "Chromatic color shift" },
+        { title: "Return", measures: [33, 40], focus: "Recover the original distance", harmony: "Opening sonorities return" },
+        { title: "Final release", measures: [41, 47], focus: "Allow the ending to settle", harmony: "Quiet tonal closure" },
+      ],
+    },
     steps: [
       learn("satie-space", "Slow music exposes every decision", "The left hand alternates low bass and soft chords while the melody enters above. The challenge is not speed; it is balancing layers and allowing resonance without blurring harmony.", "Production calls this managing foreground, background, and space. Piano technique calls it voicing and pedal.", [[43,50,54], [38,45,49]], "The melody should remain present even at a quiet dynamic; accompaniment should feel farther away."),
       sequence("satie-bass", "The opening harmonic breath", "Play low G, the upper chord, low D, the upper chord. Release the pedal when harmony changes.", [43,50,54,38,45,49], "Pedal follows harmonic meaning, not an automatic foot pattern."),
@@ -328,7 +388,21 @@ export const COURSES: Course[] = [
     duration: "10 sessions",
     outcome: "You can study the complete prelude, trace its chromatic voice leading, and shape a long phrase over changing harmony.",
     tags: ["Complete work path", "Chromatic harmony", "Expression"],
-    repertoire: { composer: "Frédéric Chopin", edition: "Op. 28 No. 4 complete guided study", sections: ["Opening suspension", "Descending inner voice", "First cadence", "Climactic expansion", "Final return", "Complete performance"], completeWork: true },
+    repertoire: {
+      composer: "Frédéric Chopin",
+      edition: "Op. 28 No. 4 complete guided study",
+      scoreUrl: "/scores/chopin-prelude-e-minor.mxl",
+      totalMeasures: 26,
+      completeWork: true,
+      sections: [
+        { title: "Opening suspension", measures: [1, 4], focus: "Keep the melody separate from the chord", harmony: "E minor with delayed resolution" },
+        { title: "Inner descent", measures: [5, 8], focus: "Follow one chromatic middle voice", harmony: "Common tones over shifting bass" },
+        { title: "First cadence", measures: [9, 12], focus: "Do not arrive too early", harmony: "Dominant tension and evasion" },
+        { title: "Climactic expansion", measures: [13, 16], focus: "Grow through harmony, not speed", harmony: "Intensified chromatic sequence" },
+        { title: "Final return", measures: [17, 21], focus: "Release weight gradually", harmony: "Tonic returns under suspension" },
+        { title: "Coda", measures: [22, 26], focus: "Let silence complete the cadence", harmony: "Final dominant to E minor" },
+      ],
+    },
     steps: [
       learn("chopin-inner", "The melody barely moves, the harmony aches", "The upper melody is restrained. Much of the emotional motion comes from inner chord tones descending by semitone while common tones remain. Listen horizontally inside each chord.", "Voice leading explains expression more precisely than calling a chord simply sad.", [[52,55,59], [51,54,59], [50,53,59]], "Follow one middle note through several harmonies instead of hearing only vertical blocks."),
       chord("eminor", "Establish E minor", "Hold E3, G3, and B3.", [52,55,59], "E minor", "The tonic is present but deliberately weighted and unsettled by what follows."),

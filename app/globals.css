@@ -200,6 +200,45 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .feedback-line > span { align-items: center; background: var(--primary-soft); border-radius: 50%; color: var(--primary); display: flex; flex: 0 0 auto; font-size: 12px; height: 26px; justify-content: center; width: 26px; }
 .feedback-line.complete > span { background: var(--success-soft); color: var(--success); }
 .feedback-line p { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0; }
+.score-reader { border-top: 1px solid var(--line-strong); margin-top: 28px; padding-top: 30px; }
+.score-reader-heading { align-items: flex-start; display: flex; gap: 24px; justify-content: space-between; }
+.score-reader-heading h2 { font-size: 24px; letter-spacing: -.035em; margin: 8px 0 0; }
+.score-reader-actions { display: flex; gap: 7px; }
+.score-follow, .score-loop { align-items: center; background: var(--raised); border: 1px solid var(--line); border-radius: 9px; cursor: pointer; display: inline-flex; font-size: 10px; font-weight: 700; gap: 7px; min-height: 36px; padding: 0 11px; }
+.score-follow:hover, .score-loop:hover { border-color: var(--primary); }
+.score-follow.active, .score-loop.active { background: var(--primary-soft); border-color: oklch(0.76 0.08 252); color: var(--primary); }
+.score-follow i { background: var(--faint); border-radius: 50%; height: 7px; width: 7px; }
+.score-follow.active i { background: var(--success); box-shadow: 0 0 0 4px oklch(0.56 0.11 155 / .13); }
+.score-sections { display: flex; gap: 5px; margin: 22px 0 14px; overflow-x: auto; padding-bottom: 3px; }
+.score-sections button { align-items: center; background: transparent; border: 1px solid transparent; border-radius: 10px; cursor: pointer; display: flex; flex: 1 0 130px; gap: 9px; min-height: 50px; padding: 7px 9px; text-align: left; }
+.score-sections button:hover { background: var(--surface); }
+.score-sections button.active { background: var(--raised); border-color: var(--line-strong); }
+.score-sections button > span { align-items: center; border: 1px solid var(--line-strong); border-radius: 50%; color: var(--muted); display: flex; flex: 0 0 auto; font-family: var(--font-mono); font-size: 8px; height: 23px; justify-content: center; width: 23px; }
+.score-sections button div { display: flex; flex-direction: column; gap: 3px; }
+.score-sections button strong { font-size: 10px; }
+.score-sections button small { color: var(--muted); font-size: 8px; }
+.score-context { background: oklch(0.94 0.014 82); border: 1px solid var(--line); border-radius: 11px 11px 0 0; display: grid; grid-template-columns: .8fr .55fr 1.25fr 1.25fr; }
+.score-context > div { border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; min-height: 60px; padding: 11px 14px; }
+.score-context > div:first-child { border-left: 0; }
+.score-context span { color: var(--muted); font-size: 8px; letter-spacing: .05em; text-transform: uppercase; }
+.score-context strong { font-size: 10px; line-height: 1.35; }
+.score-paper { background: oklch(0.995 0.004 82); border: 1px solid var(--line); border-top: 0; height: 470px; overflow: auto; position: relative; }
+.osmd-container { min-height: 100%; padding: 14px 16px 30px; }
+.osmd-container svg { display: block; height: auto; width: 100%; }
+.score-loading, .score-error { align-items: center; background: var(--raised); display: flex; flex-direction: column; inset: 0; justify-content: center; position: absolute; text-align: center; z-index: 5; }
+.score-loading i { border: 2px solid var(--line); border-radius: 50%; border-top-color: var(--primary); height: 24px; width: 24px; animation: score-spin 800ms linear infinite; }
+.score-loading p, .score-error p { color: var(--muted); font-size: 11px; }
+.score-error strong { font-size: 13px; }
+@keyframes score-spin { to { transform: rotate(360deg); } }
+.score-transport { align-items: center; background: var(--raised); border: 1px solid var(--line); border-radius: 0 0 11px 11px; border-top: 0; display: grid; gap: 15px; grid-template-columns: auto 1fr 1fr auto; min-height: 72px; padding: 10px 12px; }
+.score-transport > button { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-size: 9px; min-height: 34px; padding: 0 10px; }
+.score-transport > button:hover { border-color: var(--primary); }
+.measure-progress { display: flex; flex-direction: column; gap: 6px; }
+.measure-progress > div { background: var(--line); border-radius: 999px; height: 4px; overflow: hidden; }
+.measure-progress i { background: var(--success); display: block; height: 100%; }
+.measure-progress span, .expected-score-notes span, .expected-score-notes small { color: var(--muted); font-size: 8px; }
+.expected-score-notes { align-items: baseline; display: flex; flex-wrap: wrap; gap: 6px; }
+.expected-score-notes strong { font-family: var(--font-mono); font-size: 10px; }
 .teaching-notes { border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 10px; }
 .teaching-notes article { border-left: 1px solid var(--line); min-height: 132px; padding: 22px 22px 18px; }
 .teaching-notes article:first-child { border-left: 0; padding-left: 0; }
@@ -262,7 +301,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .progress-ring > div { align-items: center; background: var(--canvas); border-radius: 50%; display: flex; flex-direction: column; height: 140px; justify-content: center; width: 140px; }
 .progress-ring strong { font-family: var(--font-mono); font-size: 28px; }
 .progress-ring span { color: var(--muted); font-size: 10px; margin-top: 4px; }
-.progress-facts { display: grid; grid-template-columns: repeat(3, 1fr); }
+.progress-facts { display: grid; grid-template-columns: repeat(4, 1fr); }
 .progress-facts div { border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 7px; min-height: 95px; padding: 18px 28px; }
 .progress-facts strong { font-family: var(--font-mono); font-size: 28px; }
 .progress-facts span { color: var(--muted); font-size: 11px; }
@@ -283,6 +322,11 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   .chord-activity { grid-template-columns: 1fr 1fr; }
   .chord-activity > .primary-button { grid-column: 1 / -1; justify-self: start; }
   .recording-line { grid-template-columns: 1fr repeat(3, 78px); }
+  .score-context { grid-template-columns: 1fr 1fr; }
+  .score-context > div:nth-child(3) { border-left: 0; border-top: 1px solid var(--line); }
+  .score-context > div:nth-child(4) { border-top: 1px solid var(--line); }
+  .score-transport { grid-template-columns: auto 1fr auto; }
+  .expected-score-notes { grid-column: 1 / -1; grid-row: 1; justify-content: center; }
   .course-row { grid-template-columns: 40px 1fr 80px 20px; }
   .course-tags { display: none; }
 }
@@ -334,6 +378,16 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   .recording-line { grid-template-columns: repeat(3, 1fr); }
   .recording-line > .recording { grid-column: 1 / -1; }
   .creative-actions, .lesson-footer { align-items: stretch; flex-direction: column; }
+  .score-reader-heading { flex-direction: column; }
+  .score-reader-actions { width: 100%; }
+  .score-reader-actions button { flex: 1; }
+  .score-paper { height: 390px; }
+  .score-context { grid-template-columns: 1fr; }
+  .score-context > div, .score-context > div:nth-child(3) { border-left: 0; border-top: 1px solid var(--line); }
+  .score-context > div:first-child { border-top: 0; }
+  .score-transport { grid-template-columns: 1fr 1fr; }
+  .expected-score-notes, .measure-progress { grid-column: 1 / -1; }
+  .score-transport > button { grid-row: 3; }
   .lesson-footer { gap: 13px; }
   .studio-toolbar { align-items: flex-start; flex-direction: column; gap: 10px; position: static; }
   .toolbar-actions { width: 100%; }

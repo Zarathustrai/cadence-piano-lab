@@ -47,6 +47,8 @@ test("keeps the AI boundary isolated and local persistence explicit", async () =
   assert.match(page, /activityRunningRef\.current = true/);
   assert.match(page, /samePitchSet\(nextActive, activeStep\.targetChord\)/);
   assert.match(page, /setSketches/);
+  assert.match(page, /<ScoreReader/);
+  assert.match(page, /scoreMeasures/);
   assert.match(curriculum, /Triads from first principles/);
   assert.match(curriculum, /Harmony that goes somewhere/);
   assert.match(curriculum, /Bach: Prelude in C major/);
@@ -54,6 +56,7 @@ test("keeps the AI boundary isolated and local persistence explicit", async () =
   assert.match(curriculum, /Improvisation as conversation/);
   assert.match(curriculum, /From piano idea to production/);
   assert.match(curriculum, /completeWork: true/g);
+  assert.equal((curriculum.match(/scoreUrl: "\/scores\//g) ?? []).length, 5);
   assert.match(coach, /Drop-in AI boundary/);
   const hostingConfig = JSON.parse(hosting);
   assert.equal(hostingConfig.d1, null);
@@ -83,4 +86,27 @@ test("recognizes held chords in any inversion or octave", () => {
   assert.equal(detectChord([57, 60, 64]), "A minor");
   assert.equal(samePitchSet([60, 64, 67], [48, 55, 64]), true);
   assert.equal(samePitchSet([60, 64, 67], [60, 63, 67]), false);
+});
+
+test("ships five complete local MusicXML score archives and an interactive reader", async () => {
+  const filenames = [
+    "ode-to-joy.mxl",
+    "bach-prelude-c.mxl",
+    "minuet-in-g.mxl",
+    "gymnopedie-no-1.mxl",
+    "chopin-prelude-e-minor.mxl",
+  ];
+  const [reader, ...archives] = await Promise.all([
+    readFile(new URL("../app/score-reader.tsx", import.meta.url), "utf8"),
+    ...filenames.map((filename) => readFile(new URL(`../public/scores/${filename}`, import.meta.url))),
+  ]);
+
+  assert.match(reader, /OpenSheetMusicDisplay/);
+  assert.match(reader, /Follow my playing/);
+  assert.match(reader, /NotesUnderCursor/);
+  assert.match(reader, /onMeasureComplete/);
+  for (const archive of archives) {
+    assert.equal(archive.subarray(0, 2).toString(), "PK");
+    assert.ok(archive.length > 3000);
+  }
 });

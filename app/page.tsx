@@ -5,6 +5,7 @@ import { generatePracticeDrill, getMusicExplanation, type PracticeDrill } from "
 import { CHAPTERS, COURSES, getCourse, getStepCount, type LessonStep } from "./curriculum";
 import { getProgressionStep } from "./midi-progression.mjs";
 import { detectChord, getPitchSet, samePitchSet } from "./music-engine.mjs";
+import { ScoreReader } from "./score-reader";
 
 type MidiInputLike = {
   id: string;
@@ -40,6 +41,7 @@ type SavedState = {
   stepIndex: number;
   practiceMinutes: number;
   sketches: Sketch[];
+  scoreMeasures: Record<string, number[]>;
   preferences: string[];
   firstVisit: string;
 };
@@ -99,6 +101,7 @@ export default function Home() {
   const [completedSteps, setCompletedSteps] = useState<Record<string, string[]>>({});
   const [practiceMinutes, setPracticeMinutes] = useState(0);
   const [sketches, setSketches] = useState<Sketch[]>([]);
+  const [scoreMeasures, setScoreMeasures] = useState<Record<string, number[]>>({});
   const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
   const [firstVisit, setFirstVisit] = useState("");
   const [hydrated, setHydrated] = useState(false);
@@ -126,6 +129,7 @@ export default function Home() {
   const [beat, setBeat] = useState(0);
   const [selectedConcept, setSelectedConcept] = useState("C major");
   const [drill, setDrill] = useState<PracticeDrill>(initialDrill);
+  const [scorePlayedNote, setScorePlayedNote] = useState<{ midi: number; token: number } | null>(null);
   const [, setMistakes] = useState<Record<string, number>>({});
 
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -140,6 +144,7 @@ export default function Home() {
   const lastCorrectAtRef = useRef<number | null>(null);
   const handleNoteOnRef = useRef<(midi: number, source?: NoteSource) => void>(() => undefined);
   const handleNoteOffRef = useRef<(midi: number) => void>(() => undefined);
+  const scorePlayedTokenRef = useRef(0);
 
   const course = useMemo(() => getCourse(selectedCourseId), [selectedCourseId]);
   const step = course.steps[Math.min(stepIndex, course.steps.length - 1)];
@@ -174,6 +179,7 @@ export default function Home() {
           setStepIndex(saved.stepIndex ?? 0);
           setPracticeMinutes(saved.practiceMinutes ?? 0);
           setSketches(saved.sketches ?? []);
+          setScoreMeasures(saved.scoreMeasures ?? {});
           setPreferences(saved.preferences ?? DEFAULT_PREFERENCES);
           setFirstVisit(saved.firstVisit ?? new Date().toISOString());
         } else {
@@ -188,9 +194,9 @@ export default function Home() {
 
   useEffect(() => {
     if (!hydrated) return;
-    const state: SavedState = { completedSteps, selectedCourseId, stepIndex, practiceMinutes, sketches, preferences, firstVisit };
+    const state: SavedState = { completedSteps, selectedCourseId, stepIndex, practiceMinutes, sketches, scoreMeasures, preferences, firstVisit };
     localStorage.setItem("cadence.education.v2", JSON.stringify(state));
-  }, [completedSteps, firstVisit, hydrated, practiceMinutes, preferences, selectedCourseId, sketches, stepIndex]);
+  }, [completedSteps, firstVisit, hydrated, practiceMinutes, preferences, scoreMeasures, selectedCourseId, sketches, stepIndex]);
 
   useEffect(() => {
     currentStepRef.current = step;
@@ -276,6 +282,8 @@ export default function Home() {
     const chordName = detectChord(nextActive);
     setLiveChord(chordName);
     setLastNote(midi);
+    scorePlayedTokenRef.current += 1;
+    setScorePlayedNote({ midi, token: scorePlayedTokenRef.current });
     if (source !== "midi") playTone(midi);
     if (chordName && ["C major", "G7", "A minor", "E minor"].includes(chordName)) setSelectedConcept(chordName);
 
@@ -502,6 +510,15 @@ export default function Home() {
 
   const replaySketch = (sketch: Sketch) => sketch.notes.forEach((note, index) => playTone(note, index * 0.22, 0.32, 0.05));
 
+  const completeScoreMeasure = useCallback((measure: number) => {
+    setScoreMeasures((current) => {
+      const existing = current[course.id] ?? [];
+      return existing.includes(measure)
+        ? current
+        : { ...current, [course.id]: [...existing, measure].sort((a, b) => a - b) };
+    });
+  }, [course.id]);
+
   const deviceName = devices.find((item) => item.id === deviceId)?.name ?? "MIDI keyboard";
   const deviceLabel = midiStatus === "connected" ? deviceName : midiStatus === "requesting" ? "Looking for keyboard…" : "Connect keyboard";
 
@@ -727,6 +744,20 @@ export default function Home() {
 
               <div className={`feedback-line ${stepComplete ? "complete" : ""}`} role="status" aria-live="polite"><span>{stepComplete ? "✓" : liveChord ? "♫" : "→"}</span><p>{feedback}</p></div>
 
+              {course.repertoire && (
+                <ScoreReader
+                  title={course.title}
+                  composer={course.repertoire.composer}
+                  scoreUrl={course.repertoire.scoreUrl}
+                  totalMeasures={course.repertoire.totalMeasures}
+                  sections={course.repertoire.sections}
+                  playedNote={scorePlayedNote}
+                  completedMeasures={scoreMeasures[course.id] ?? []}
+                  onMeasureComplete={completeScoreMeasure}
+                  onFeedback={setFeedback}
+                />
+              )}
+
               <div className="teaching-notes">
                 <article><p className="eyebrow">Why this matters</p><p>{step.why}</p></article>
                 <article><p className="eyebrow">Listen for</p><p>{step.listenFor ?? step.hint ?? "Notice what feels stable, what creates motion, and where the phrase wants to breathe."}</p></article>
@@ -775,7 +806,7 @@ export default function Home() {
       {view === "progress" && (
         <section className="progress-view">
           <div className="view-intro"><p className="eyebrow">Musicianship</p><h1>Progress is what you can<br />hear, explain, and create.</h1><p>Completion matters less than connections becoming reliable.</p></div>
-          <div className="progress-overview"><div className="progress-ring" style={{ "--progress": `${overallProgress * 3.6}deg` } as React.CSSProperties}><div><strong>{overallProgress}%</strong><span>whole path</span></div></div><div className="progress-facts"><div><strong>{totalCompleted}</strong><span>learning experiences</span></div><div><strong>{practiceMinutes}</strong><span>focused minutes</span></div><div><strong>{sketches.length}</strong><span>creative sketches</span></div></div></div>
+          <div className="progress-overview"><div className="progress-ring" style={{ "--progress": `${overallProgress * 3.6}deg` } as React.CSSProperties}><div><strong>{overallProgress}%</strong><span>whole path</span></div></div><div className="progress-facts"><div><strong>{totalCompleted}</strong><span>learning experiences</span></div><div><strong>{Object.values(scoreMeasures).reduce((sum, measures) => sum + measures.length, 0)}</strong><span>score measures followed</span></div><div><strong>{practiceMinutes}</strong><span>focused minutes</span></div><div><strong>{sketches.length}</strong><span>creative sketches</span></div></div></div>
           <div className="musicianship-map">
             {CHAPTERS.map((chapter) => {
               const chapterCourses = COURSES.filter((item) => item.chapter === chapter);
