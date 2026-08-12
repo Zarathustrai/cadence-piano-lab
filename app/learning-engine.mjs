@@ -118,7 +118,7 @@ export function analyzePerformance(input) {
   };
 }
 
-export function evaluateScoreSession({ correct = 0, mistakes = 0, timingRatios = [], pauses = 0, tempo = 72 } = {}) {
+export function evaluateScoreSession({ correct = 0, mistakes = 0, timingRatios = /** @type {number[]} */ ([]), pauses = 0, tempo = 72 } = {}) {
   const attempts = correct + mistakes;
   const accuracy = attempts ? clamp((correct / attempts) * 100) : 0;
   const timingErrors = timingRatios.map((ratio) => Math.min(1.5, Math.abs(ratio - 1)));
@@ -135,7 +135,7 @@ export function evaluateScoreSession({ correct = 0, mistakes = 0, timingRatios =
   };
 }
 
-export function buildPracticePlan({ nextCourse, earProgress, latestScore, latestTechnique, hasSketch, preferences = [], dueReviews = [] }) {
+export function buildPracticePlan({ nextCourse, earProgress, latestScore, latestTechnique, hasSketch, preferences = /** @type {string[]} */ ([]), dueReviews = /** @type {Array<Record<string, any>>} */ ([]) }) {
   const earAccuracy = earProgress?.attempted ? Math.round((earProgress.correct / earProgress.attempted) * 100) : null;
   let warmup;
   if (dueReviews.length) {

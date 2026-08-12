@@ -100,7 +100,7 @@ export function CompositionProjectStudio({ project, sketches, preferences, onUpd
   const brief = PROJECT_BRIEFS.find((item) => item.id === project.briefId) ?? PROJECT_BRIEFS[0];
   const section = project.sections[activeSection];
   const analysis = useMemo(() => analyzeProject(project), [project]);
-  const performance = useMemo(() => assembleProject(project, sketches), [project, sketches]);
+  const performance = useMemo(() => assembleProject(project, sketches) as PerformanceNote[], [project, sketches]);
   const source = sketches.find((item) => item.id === section.sourceSketchId);
   const totalBars = project.sections.reduce((sum, item) => sum + item.bars, 0);
 

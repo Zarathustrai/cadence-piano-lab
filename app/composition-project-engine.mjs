@@ -152,6 +152,6 @@ export function analyzeProject(project) {
   return { completed, total: milestones.length, sourceChosen, developed, contrasted, returned, arranged, reflected, observation, nextMove };
 }
 
-export function recommendedBrief(preferences = []) {
+export function recommendedBrief(preferences = /** @type {string[]} */ ([])) {
   return PROJECT_BRIEFS.find((brief) => preferences.includes(brief.direction)) ?? PROJECT_BRIEFS[0];
 }

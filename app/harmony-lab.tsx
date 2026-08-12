@@ -72,7 +72,7 @@ export function HarmonyLab({ preferences, playProgression, onResult, onSaveSketc
   const saveSketch = () => {
     if (!activeSlots.length) return;
     const chordMs = 4 * (60000 / bpm);
-    const performance: PerformanceNote[] = activeSlots.flatMap((slot, chordIndex) => slot.voicing.notes.map((midi) => ({ midi, start: chordIndex * chordMs, duration: chordMs * .9, velocity: 78 })));
+    const performance: PerformanceNote[] = activeSlots.flatMap((slot, chordIndex) => slot.voicing.notes.map((midi: number) => ({ midi, start: chordIndex * chordMs, duration: chordMs * .9, velocity: 78 })));
     const title = HARMONY_PRESETS.find((item) => item.id === presetId)?.title ?? `${HARMONY_KEYS.find((item) => item.id === keyId)?.name} progression`;
     const sketch: EditableSketch = {
       id: `harmony-${Date.now()}`,

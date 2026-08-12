@@ -70,12 +70,6 @@ type SavedState = {
   firstVisit: string;
 };
 
-declare global {
-  interface Navigator {
-    requestMIDIAccess?: () => Promise<MidiAccessLike>;
-  }
-}
-
 const KEY_START = 48;
 const KEY_END = 76;
 const NOTE_NAMES = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
@@ -558,7 +552,7 @@ export default function Home() {
     }
     setMidiStatus("requesting");
     try {
-      const access = await navigator.requestMIDIAccess();
+      const access = await navigator.requestMIDIAccess() as unknown as MidiAccessLike;
       midiAccessRef.current = access;
       access.onstatechange = refreshDevices;
       const available = Array.from(access.inputs.values());

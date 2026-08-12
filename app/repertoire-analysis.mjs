@@ -321,7 +321,7 @@ export function getRepertoireAnalysis(courseId, sectionIndex) {
   return sections[Math.max(0, Math.min(sectionIndex, sections.length - 1))] ?? null;
 }
 
-export function getPersonalizedRepertoireTransfer(analysis, preferences = []) {
+export function getPersonalizedRepertoireTransfer(analysis, preferences = /** @type {string[]} */ ([])) {
   if (!analysis) return "Choose one audible mechanism and use it in a short phrase of your own.";
   const seed = analysis.transferSeed;
   if (preferences.includes("Film & game music")) return `Scoring study: use ${seed}. Present it once as safety, then change register, orchestration, or bass context so the same mechanism suggests uncertainty.`;
