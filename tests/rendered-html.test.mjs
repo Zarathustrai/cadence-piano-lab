@@ -29,13 +29,37 @@ test("server-renders the Cadence learning studio", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>Cadence · Understand what you play<\/title>/i);
-  assert.match(html, /Learn the language/);
+  assert.match(html, /Start with no assumed/);
   assert.match(html, /Romanas/);
-  assert.match(html, /Classical craft, harmony, improvisation, composition, and production/);
+  assert.match(html, /Every new music word is translated/);
   assert.match(html, /Built around what you want to become/);
   assert.match(html, /Musicianship Lab/);
   assert.match(html, /Calibrate my starting point/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
+});
+
+test("teaches notation and translates vocabulary before Beethoven", async () => {
+  const [curriculum, page, language] = await Promise.all([
+    readFile(new URL("../app/curriculum.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/music-language.tsx", import.meta.url), "utf8"),
+  ]);
+
+  const notationAt = curriculum.indexOf('id: "notation"');
+  const odeAt = curriculum.indexOf('id: "ode"');
+  assert.ok(notationAt > 0 && notationAt < odeAt, "notation is taught before repertoire");
+  assert.match(curriculum, /The page is a height map/);
+  assert.match(curriculum, /What does E4 mean/);
+  assert.match(curriculum, /prerequisites: \["keyboard", "notation", "rhythm"\]/);
+  assert.match(curriculum, /Phrase.*A short musical thought/);
+  assert.doesNotMatch(curriculum, /heard as four sentences/);
+  assert.match(page, /<NotationStaff/);
+  assert.match(page, /<LessonTerms/);
+  assert.match(page, /Music words/);
+  assert.match(page, /This lesson uses ideas taught earlier/);
+  assert.match(language, /Home note \(tonic\).*teacher word for home/);
+  assert.match(language, /Musical sentence.*informal comparison/);
+  assert.match(language, /Higher symbol = move right on the keyboard/);
 });
 
 test("keeps the AI boundary isolated and local persistence explicit", async () => {

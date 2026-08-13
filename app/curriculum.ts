@@ -12,6 +12,11 @@ export type Choice = {
   correct?: boolean;
 };
 
+export type MusicTerm = {
+  term: string;
+  plain: string;
+};
+
 export type LessonStep = {
   id: string;
   kind: StepKind;
@@ -30,6 +35,10 @@ export type LessonStep = {
   prompt?: string;
   choices?: Choice[];
   answerExplanation?: string;
+  terms?: MusicTerm[];
+  notation?: {
+    showNames?: boolean;
+  };
 };
 
 export type ScoreSection = {
@@ -49,6 +58,7 @@ export type Course = {
   outcome: string;
   tags: string[];
   steps: LessonStep[];
+  prerequisites?: string[];
   repertoire?: {
     composer: string;
     edition: string;
@@ -153,16 +163,77 @@ export const COURSES: Course[] = [
     ],
   },
   {
-    id: "intervals",
+    id: "notation",
     number: "02",
+    chapter: "Foundations",
+    title: "How written music works",
+    subtitle: "Read the page one symbol at a time",
+    duration: "25 min",
+    outcome: "You can follow notes moving up and down, find middle C, and read the opening of Ode to Joy without guessing from a letter list.",
+    tags: ["No prior reading", "Staff", "Middle C"],
+    prerequisites: ["keyboard"],
+    steps: [
+      {
+        ...learn(
+          "page-is-map",
+          "The page is a height map",
+          "A written note is a small oval placed on five lines called a staff. A symbol higher on the staff means a higher sound, so your hand usually moves right. A lower symbol means a lower sound, so your hand moves left. Start by seeing direction; letter names come second.",
+          "Reading becomes much easier when you see a moving shape instead of decoding every symbol separately.",
+          [60, 62, 64, 65, 67],
+          "Hear the notes rise while the symbols would rise on the page.",
+        ),
+        terms: [
+          { term: "Note", plain: "One musical sound. On the page, it is shown by a small oval." },
+          { term: "Staff", plain: "The five horizontal lines where notes are placed." },
+          { term: "Pitch", plain: "How high or low a note sounds." },
+        ],
+      },
+      {
+        ...sequence("read-up", "Follow five notes upward", "The highlighted symbol moves upward one step at a time. Begin on middle C, then move to the next white key on the right for each new symbol.", [60, 62, 64, 65, 67], "Your eye, ear, and hand are learning the same direction together.", "Do not memorize the row of letters. Watch whether the next symbol is higher or lower."),
+        notation: { showNames: true },
+        terms: [{ term: "Middle C (C4)", plain: "The C near the center of the keyboard. Cadence writes it as C4 so it is not confused with a lower or higher C." }],
+      },
+      {
+        ...learn(
+          "clef-landmarks",
+          "Three landmarks are enough to begin",
+          "The curled sign is the treble clef. It fixes the note names on the staff. Middle C sits just below the staff on one short extra line. E sits on the bottom line. G sits on the second line. You can find other notes by stepping up or down from these landmarks.",
+          "Landmarks let you read relationships. You do not need to memorize every line and space before playing music.",
+          [60, 64, 67],
+          "Middle C, E, and G sound like every other white key from the same starting point.",
+        ),
+        terms: [
+          { term: "Treble clef", plain: "The curled sign that tells us which staff position belongs to which note." },
+          { term: "Landmark note", plain: "A note you recognize quickly and use to find nearby notes." },
+        ],
+      },
+      {
+        ...sequence("read-landmarks", "Read middle C, E, and G", "Look at each highlighted oval, then play its matching key. The labels stay visible while you learn the three landmarks.", [60, 64, 67, 64, 60], "Recognizing a few reliable places is faster than counting every line from scratch.", "C is below the staff, E is on the bottom line, G is on the second line."),
+        notation: { showNames: true },
+      },
+      quiz("note-name", "What does E4 mean?", "Cadence sometimes writes a letter followed by a number. What is that number doing?", [{ label: "It identifies which E on the keyboard", correct: true }, { label: "It tells you to use finger four" }, { label: "It tells you to play four times" }], "The letter names the note. The number identifies its keyboard area. E4 is the E just above middle C; it is not a fingering instruction.", "This notation is used by MIDI apps. Printed scores normally show the height through staff position instead."),
+      {
+        ...sequence("ode-first-shape", "Read Beethoven's first shape", "Read only five symbols: E, E, F, G, G. Repeated symbols mean repeat the same key. A symbol one step higher means move to the next white key on the right.", [64, 64, 65, 67, 67], "You have now read the opening shape instead of copying an unexplained list of note names.", "The first two symbols stay in the same place; the next two steps rise."),
+        notation: { showNames: false },
+        terms: [{ term: "Melody", plain: "The line of notes you would hum or sing. This Beethoven opening is a melody." }],
+      },
+    ],
+  },
+  {
+    id: "intervals",
+    number: "03",
     chapter: "Foundations",
     title: "Intervals: music in distances",
     subtitle: "Hear and build the space between notes",
     duration: "24 min",
     outcome: "You can construct seconds through fifths and connect their sound to melody and harmony.",
     tags: ["Ear", "Reading", "Melody"],
+    prerequisites: ["keyboard", "notation"],
     steps: [
-      learn("interval-idea", "A melody is a path of distances", "An interval names the distance from one letter to another. C to D is a second, C to E a third, C to F a fourth, and C to G a fifth. The number counts both endpoints.", "Thinking in intervals makes music transferable. A shape can begin on a new note and remain the same musical idea.", [[60, 62], [60, 64], [60, 65], [60, 67]], "Seconds feel close, thirds begin to imply harmony, fourths and fifths feel open."),
+      { ...learn("interval-idea", "A melody is a path of distances", "An interval is simply the distance from one note to another. C to D is called a second, C to E a third, C to F a fourth, and C to G a fifth. The number counts both note letters, including the starting note.", "Thinking in distances makes music transferable. A shape can begin on a new note and remain the same musical idea.", [[60, 62], [60, 64], [60, 65], [60, 67]], "Seconds feel close, thirds begin to sound like a chord, and fourths and fifths feel more open."), terms: [
+        { term: "Interval", plain: "The distance from one note to another." },
+        { term: "Melody", plain: "The line of notes you would hum or sing." },
+      ] },
       sequence("melodic-intervals", "Play four distances", "Begin on C4 each time, then play D4, E4, F4, and G4.", [60, 62, 60, 64, 60, 65, 60, 67], "Your hand, eye, and ear are learning one shared vocabulary."),
       quiz("third-count", "Why is C to E a third?", "Choose the most useful explanation.", [{ label: "It spans C, D, E", correct: true }, { label: "There are three piano keys between them" }, { label: "E is always major" }], "Interval numbers count letter names inclusively: C(1), D(2), E(3). Its quality, major or minor, is a separate detail.", "Correct counting prevents confusion when accidentals enter later."),
       sequence("motif-third", "Hear a motif as shape", "Play C, E, D, F, E, G. Notice the repeated upward third.", [60, 64, 62, 65, 64, 67], "Motifs become easier to remember and vary when you recognize their interval pattern."),
@@ -171,15 +242,20 @@ export const COURSES: Course[] = [
   },
   {
     id: "rhythm",
-    number: "03",
+    number: "04",
     chapter: "Foundations",
     title: "Rhythm before notes",
     subtitle: "Build pulse, subdivision, and rests",
     duration: "22 min",
-    outcome: "You can keep a steady quarter-note pulse and understand how silence belongs to the phrase.",
+    outcome: "You can keep a steady beat and understand how measured silence belongs inside a short musical thought.",
     tags: ["Pulse", "Subdivisions", "Timing"],
+    prerequisites: ["keyboard", "notation"],
     steps: [
-      learn("pulse", "Pulse is the grid, rhythm is the drawing", "The pulse is a regular underlying beat. Rhythm is the pattern of sound and silence placed on that beat. Good time does not mean mechanical playing; it means choosing when to bend time from a stable center.", "Every later style, from Bach to electronic production, depends on an internal grid.", [60, 60, 60, 60], "Four equal attacks with no early third beat or late fourth beat."),
+      { ...learn("pulse", "Beat is the clock; rhythm is the pattern", "The beat is the steady clock you can tap with your foot. Rhythm is the pattern of notes and silences placed on that clock. First learn to keep the clock steady. Expressive timing comes later.", "Every later style, from Bach to electronic production, depends on feeling a steady beat underneath the notes.", [60, 60, 60, 60], "Four equal notes, each arriving with one metronome click."), terms: [
+        { term: "Beat (pulse)", plain: "The steady clock underneath the music." },
+        { term: "Rhythm", plain: "The pattern of sounds and silences placed on the beat." },
+        { term: "Phrase", plain: "A short musical thought, like a line you could sing in one breath." },
+      ] },
       sequence("quarters", "Four settled quarters", "Set the metronome near 72 BPM. Play C4 once on each beat, four times.", [60, 60, 60, 60], "Repetition exposes timing more clearly than a busy melody."),
       sequence("rhythm-phrase", "Make repeated notes speak", "Play E E F G, then hold the final G in your mind for two beats.", [64, 64, 65, 67], "Repeated pitches make rhythm and articulation carry the expression."),
       quiz("rest", "What does a rest do?", "Which description is closest to musical reality?", [{ label: "It gives silence a measured duration", correct: true }, { label: "It stops the pulse" }, { label: "It means the performer made a mistake" }], "A rest is timed silence. The underlying beat continues through it.", "Composers shape expectation as much with absence as with sound."),
@@ -188,24 +264,27 @@ export const COURSES: Course[] = [
   },
   {
     id: "scales",
-    number: "04",
+    number: "05",
     chapter: "Foundations",
     title: "Scales and tonal gravity",
     subtitle: "Why seven notes do not feel equally stable",
     duration: "28 min",
-    outcome: "You can play C major with a practical fingering and hear tonic, tendency, and scale degree.",
+    outcome: "You can play C major with practical fingering and hear which notes feel settled or want to move.",
     tags: ["C major", "Fingering", "Tonic"],
     steps: [
-      learn("scale-pattern", "A scale is a hierarchy, not a list", "C major uses the white keys C D E F G A B. But C feels like home, G supports it, and B leans strongly upward into C. These roles create tonal gravity.", "Improvisation becomes meaningful when notes have different jobs rather than equal permission.", [60, 62, 64, 65, 67, 69, 71, 72], "Hear B as a question and the final C as its answer."),
+      { ...learn("scale-pattern", "A scale is a family with a home", "A scale is a family of notes arranged in order. C major uses the white keys C D E F G A B. C feels most settled, so musicians call it the home note, or tonic. G supports that home feeling, while B strongly wants to rise into C.", "Improvisation becomes meaningful when notes have different jobs instead of all feeling equally important.", [60, 62, 64, 65, 67, 69, 71, 72], "Hear B as a question and the final C as its answer."), terms: [
+        { term: "Scale", plain: "A family of notes arranged from low to high or high to low." },
+        { term: "Home note (tonic)", plain: "The note that feels most settled. Tonic is the teacher word for home." },
+      ] },
       sequence("scale-up", "C major ascending", "Right hand: 1 2 3, pass the thumb under, then 1 2 3 4 5.", [60, 62, 64, 65, 67, 69, 71, 72], "Efficient fingering lets phrasing continue without a visible bump."),
       sequence("scale-return", "Return without collapsing", "Descend with 5 4 3 2 1, cross finger 3 over, then 3 2 1.", [72, 71, 69, 67, 65, 64, 62, 60], "The crossover is a transfer of balance, not a twist of the wrist."),
-      quiz("leading-tone", "Why does B want to rise?", "Choose the best explanation in C major.", [{ label: "It is a half step below the tonic", correct: true }, { label: "It is the highest white key" }, { label: "All seventh notes must be loud" }], "B is the leading tone: only a semitone below C, so the ear strongly predicts resolution upward.", "Tendency tones are the engine of both functional harmony and melodic direction."),
+      quiz("leading-tone", "Why does B want to rise?", "Choose the best explanation in C major.", [{ label: "It is the nearest key below the home note, C", correct: true }, { label: "It is the highest white key" }, { label: "All seventh notes must be loud" }], "B sits only one keyboard step below the home note, C. That closeness makes the ear strongly expect B to move upward into C.", "Notes that lean toward another note give both chords and melodies a sense of direction."),
       { id: "scale-improv", kind: "improv", eyebrow: "Create", title: "Make C feel inevitable", body: "Improvise only with C D E G A. End your first phrase on G, then make the second phrase settle on C.", allowedNotes: [60, 62, 64, 67, 69, 72], minNotes: 14, why: "You are practicing tonal direction, not random scale wandering.", hint: "Leave a breath between the two phrases." },
     ],
   },
   {
     id: "triads",
-    number: "05",
+    number: "06",
     chapter: "Harmony",
     title: "Triads from first principles",
     subtitle: "Root, third, fifth, and musical color",
@@ -213,7 +292,11 @@ export const COURSES: Course[] = [
     outcome: "You can build major and minor triads without memorizing hand shapes and explain what the third changes.",
     tags: ["Chords", "Major/minor", "Construction"],
     steps: [
-      learn("stacked-thirds", "A triad is two stacked thirds", "Start on a root, skip one scale letter to find the third, then skip another to find the fifth. C E G is a triad. The root names it, the third gives it major or minor color, and the fifth stabilizes it.", "This method works from any root and prevents chord learning from becoming a collection of unrelated shapes.", [[60, 64, 67], [60, 63, 67]], "The outer C and G stay fixed while one semitone in the middle changes the whole color."),
+      { ...learn("stacked-thirds", "Build a three-note chord by skipping letters", "A chord is several notes heard together. A triad is a particular three-note chord. Start on C, skip D and choose E, then skip F and choose G. You get C E G. The bottom note names the chord; changing the middle note changes its bright or dark color.", "This method works from any starting note and prevents chord learning from becoming a collection of unrelated hand shapes.", [[60, 64, 67], [60, 63, 67]], "The outer C and G stay fixed while one nearby middle key changes the whole color."), terms: [
+        { term: "Chord", plain: "Several notes sounding together." },
+        { term: "Triad", plain: "A three-note chord built by choosing every other letter name." },
+        { term: "Root", plain: "The note that names the chord. C is the root of C major." },
+      ] },
       chord("build-c", "Build C major", "Hold C4, E4, and G4 together. The app waits for all three notes.", [60, 64, 67], "C major", "You are building from scale degrees 1, 3, and 5.", "Use fingers 1, 3, and 5 in the right hand."),
       chord("build-am", "Build A minor", "Hold A3, C4, and E4 together.", [57, 60, 64], "A minor", "A minor shares C and E with C major. One changed bass note creates a new center.", "Keep C and E where they are, then move C major's G down to A below."),
       quiz("major-minor", "Which note defines the color?", "C major becomes C minor when one chord tone moves. Which one?", [{ label: "E moves to E♭", correct: true }, { label: "C moves to C♯" }, { label: "G moves to F" }], "Lowering the major third E by one semitone gives E♭, the minor third. Root and fifth remain C and G.", "A one-note change can carry more expressive weight than an entirely new texture."),
@@ -222,7 +305,7 @@ export const COURSES: Course[] = [
   },
   {
     id: "inversions",
-    number: "06",
+    number: "07",
     chapter: "Harmony",
     title: "Inversions and voice leading",
     subtitle: "Move chords with less effort and more intention",
@@ -239,15 +322,20 @@ export const COURSES: Course[] = [
   },
   {
     id: "progressions",
-    number: "07",
+    number: "08",
     chapter: "Harmony",
     title: "Harmony that goes somewhere",
-    subtitle: "Tonic, predominant, dominant, return",
+    subtitle: "Home, travel, tension, return",
     duration: "38 min",
     outcome: "You can play and explain I–IV–V7–I, hear dominant tension, and vary a progression deliberately.",
-    tags: ["Function", "Cadence", "Songwriting"],
+    tags: ["Chord jobs", "Tension", "Songwriting"],
     steps: [
-      learn("function", "Chords have jobs in a phrase", "Tonic feels like home. Predominant moves away and prepares motion. Dominant creates focused tension. Returning to tonic releases it. In C: C is I, F is IV, G7 is V7.", "Functional hearing lets you predict, improvise, reharmonize, and understand long classical phrases.", [[60, 64, 67], [60, 65, 69], [59, 62, 65, 67], [60, 64, 67]], "On G7, hear B rise to C and F fall to E."),
+      { ...learn("function", "Chords can feel like home, travel, and return", "A short musical thought can begin at home, move away, build tension, then return. Musicians name those jobs tonic, predominant, and dominant. In C major, C is home (I), F moves away (IV), G7 creates the strongest pull back (V7), and C releases it.", "Hearing jobs instead of memorizing symbols helps you predict, improvise, and understand why a classical passage moves.", [[60, 64, 67], [60, 65, 69], [59, 62, 65, 67], [60, 64, 67]], "On G7, hear B rise to C and F fall to E."), terms: [
+        { term: "Phrase", plain: "A short musical thought, like one line sung in a breath." },
+        { term: "Home chord (tonic)", plain: "The chord that feels settled enough to begin or finish." },
+        { term: "Dominant", plain: "A tense chord that strongly wants to return home." },
+        { term: "Roman numerals", plain: "Labels such as I, IV, and V that show a chord's place in a key. You can treat them as road signs for now." },
+      ] },
       chord("tonic", "I: establish home", "Hold C4, E4, and G4.", [60, 64, 67], "C major (I)", "Tonic is stable enough to begin or end a phrase."),
       chord("dominant", "V7: create the question", "Hold G3, B3, D4, and F4.", [55, 59, 62, 65], "G7 (V7)", "The tritone B–F carries the chord's strongest instability."),
       chord("resolve", "I: release the tension", "Resolve to C4, E4, and G4.", [60, 64, 67], "C major (I)", "Two tendency tones move by semitone: B to C, F to E."),
@@ -257,13 +345,14 @@ export const COURSES: Course[] = [
   },
   {
     id: "ode",
-    number: "08",
+    number: "09",
     chapter: "Repertoire",
     title: "Beethoven: Ode to Joy",
-    subtitle: "A complete melody study in four phrases",
+    subtitle: "Your first readable classical melody",
     duration: "3 sessions",
-    outcome: "You can perform the complete beginner melody, shape its four phrases, and identify repetition and variation.",
-    tags: ["Complete melody", "Phrasing", "Form"],
+    outcome: "You can read and perform the beginner melody in four short musical thoughts, then hear what repeats and what changes.",
+    tags: ["First score", "Melody", "Repetition"],
+    prerequisites: ["keyboard", "notation", "rhythm"],
     repertoire: {
       composer: "L. van Beethoven",
       edition: "Complete right-hand melody study",
@@ -279,17 +368,20 @@ export const COURSES: Course[] = [
       ],
     },
     steps: [
-      learn("ode-map", "Four phrases, not sixty notes", "The melody becomes manageable when heard as four sentences. Phrase A establishes the idea. Its varied repeat changes the ending. Phrase B climbs toward the high point. The final phrase closes more decisively.", "Form reduces memory load and tells you where to breathe.", [64, 64, 65, 67, 67, 65, 64, 62]),
-      sequence("ode-a", "Phrase A", "Keep repeated notes alive by gently leaning toward G.", [64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 64, 62, 62], "The phrase rises, turns, and settles without losing the pulse."),
-      sequence("ode-a2", "Phrase A, changed ending", "Notice the familiar opening and different cadence.", [64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 62, 60, 60], "Variation creates recognition without exact repetition."),
-      sequence("ode-b", "Phrase B and high point", "Let the line grow through D and release after the repeated E notes.", [62, 62, 64, 60, 62, 64, 65, 64, 60, 62, 64, 65, 64, 62, 60, 62, 55], "The contrasting phrase extends the range and delays home."),
-      sequence("ode-complete", "Complete performance", "Play all four phrases without stopping. Breathe at phrase boundaries, not after every mistake.", [64,64,65,67,67,65,64,62,60,60,62,64,64,62,62,64,64,65,67,67,65,64,62,60,60,62,64,62,60,60,62,62,64,60,62,64,65,64,60,62,64,65,64,62,60,62,55,64,64,65,67,67,65,64,62,60,60,62,64,62,60,60], "A full performance trains recovery, continuity, and large-scale memory."),
-      quiz("ode-form", "What made the second phrase coherent?", "Why does it sound related to the first?", [{ label: "It repeats the opening and changes the cadence", correct: true }, { label: "Every pitch is different" }, { label: "It has no pulse" }], "Beethoven balances repetition with a changed ending, one of composition's most durable techniques.", "You can use the same principle in your own motifs."),
+      { ...learn("ode-map", "Hear four short musical thoughts", "A phrase is a short musical thought, like one line you could sing in a breath. This melody has four. The first introduces the idea. The second begins the same way but changes its ending. The third reaches higher. The fourth brings the melody to a clear finish.", "Breaking music into thoughts reduces memory load and shows you sensible places to pause while practicing.", [64, 64, 65, 67, 67, 65, 64, 62]), terms: [
+        { term: "Phrase", plain: "A short musical thought, like a line you could sing in one breath." },
+        { term: "Form", plain: "The large shape of a piece: which ideas appear, repeat, change, or return." },
+      ] },
+      { ...sequence("ode-a", "Read the first musical thought", "Follow the highlighted notes on the staff. Equal-height symbols repeat the same key. A symbol one step higher or lower moves to the neighboring white key.", [64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 64, 62, 62], "The line rises, turns, and settles while the beat continues."), notation: { showNames: true } },
+      { ...sequence("ode-a2", "Read the familiar opening with a new ending", "The beginning matches the first thought. Near the end, the note shape changes and settles on middle C.", [64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 62, 60, 60], "A familiar opening plus a changed ending creates recognition without exact repetition."), notation: { showNames: true }, terms: [{ term: "Variation", plain: "A recognizable idea repeated with something changed." }] },
+      { ...sequence("ode-b", "Read the higher contrasting thought", "Watch the staff shape reach upward, then come back down. Let the higher point sound a little stronger instead of simply louder everywhere.", [62, 62, 64, 60, 62, 64, 65, 64, 60, 62, 64, 65, 64, 62, 60, 62, 55], "The new shape extends the range and postpones the feeling of home."), notation: { showNames: true } },
+      sequence("ode-complete", "Join the four thoughts", "Play the complete melody without stopping. If you make a mistake, continue to the next note. Pause only at the ends of the four musical thoughts.", [64,64,65,67,67,65,64,62,60,60,62,64,64,62,62,64,64,65,67,67,65,64,62,60,60,62,64,62,60,60,62,62,64,60,62,64,65,64,60,62,64,65,64,62,60,62,55,64,64,65,67,67,65,64,62,60,60,62,64,62,60,60], "A full performance trains recovery, continuity, and musical memory."),
+      quiz("ode-form", "Why does the second thought sound related?", "Choose what your ear and the staff both show.", [{ label: "It repeats the opening and changes the ending", correct: true }, { label: "Every note is different" }, { label: "The steady beat disappears" }], "Beethoven repeats the recognizable opening, then gives it a different ending. This is one of composition's most useful techniques.", "You can use the same repeat-and-change principle in your own short ideas."),
     ],
   },
   {
     id: "bach",
-    number: "09",
+    number: "10",
     chapter: "Repertoire",
     title: "Bach: Prelude in C major",
     subtitle: "Read a complete work as harmonic motion",
@@ -322,7 +414,7 @@ export const COURSES: Course[] = [
   },
   {
     id: "minuet",
-    number: "10",
+    number: "11",
     chapter: "Repertoire",
     title: "Minuet in G major",
     subtitle: "Dance pulse and independent voices",
@@ -353,7 +445,7 @@ export const COURSES: Course[] = [
   },
   {
     id: "satie",
-    number: "11",
+    number: "12",
     chapter: "Repertoire",
     title: "Satie: Gymnopédie No. 1",
     subtitle: "Time, resonance, and restrained color",
@@ -386,7 +478,7 @@ export const COURSES: Course[] = [
   },
   {
     id: "chopin",
-    number: "12",
+    number: "13",
     chapter: "Repertoire",
     title: "Chopin: Prelude in E minor",
     subtitle: "Expression through inner motion",
@@ -419,7 +511,7 @@ export const COURSES: Course[] = [
   },
   {
     id: "improv",
-    number: "13",
+    number: "14",
     chapter: "Create",
     title: "Improvisation as conversation",
     subtitle: "Motif, space, variation, response",
@@ -436,7 +528,7 @@ export const COURSES: Course[] = [
   },
   {
     id: "composition",
-    number: "14",
+    number: "15",
     chapter: "Create",
     title: "Composition: from seed to form",
     subtitle: "Develop, harmonize, arrange, revise",
@@ -453,7 +545,7 @@ export const COURSES: Course[] = [
   },
   {
     id: "production",
-    number: "15",
+    number: "16",
     chapter: "Create",
     title: "From piano idea to production",
     subtitle: "Turn harmony and performance into arrangement choices",

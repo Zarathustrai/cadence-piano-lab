@@ -36,17 +36,23 @@ No keyboard is required for testing. Click the on-screen piano or use the comput
 The curriculum covers:
 
 1. Keyboard geography
-2. Intervals
-3. Scales
-4. Chords
-5. Rhythm
-6. Bach, Prelude in C
-7. Minuet in G
-8. Beethoven, Ode to Joy
-9. Satie, Gymnopédie No. 1
-10. Chopin, Prelude in E minor
-11. Improvisation
-12. Composition
+2. How written music works: staff, clef, middle C, and note labels
+3. Intervals
+4. Rhythm
+5. Scales
+6. Triads
+7. Chord inversions
+8. Chord progressions
+9. Beethoven, Ode to Joy
+10. Bach, Prelude in C
+11. Minuet in G
+12. Satie, Gymnopédie No. 1
+13. Chopin, Prelude in E minor
+14. Improvisation
+15. Composition
+16. Piano ideas into music production
+
+Cadence assumes no music-reading vocabulary. New terms are translated in the lesson where they first appear, a complete plain-language glossary stays available in the studio, and repertoire courses show the earlier preparation they use.
 
 The full local score library includes Beethoven's *Ode to Joy*, Bach's *Prelude in C major*, Petzold's *Minuet in G*, Satie's *Gymnopédie No. 1*, and Chopin's *Prelude in E minor*. Each work has section-level harmonic analysis, voice-leading explanations, listening prompts, and playable experiments.
 

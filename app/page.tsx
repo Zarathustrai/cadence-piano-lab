@@ -8,6 +8,7 @@ import { analyzeProject, PROJECT_BRIEFS } from "./composition-project-engine.mjs
 import { CHAPTERS, COURSES, getCourse, getStepCount, type LessonStep } from "./curriculum";
 import { analyzePerformance, buildPracticePlan, chooseRecommendedCourse, dueReviewEntries, scheduleReview } from "./learning-engine.mjs";
 import { getProgressionStep } from "./midi-progression.mjs";
+import { FullGlossary, getLessonTerms, LessonTerms, NotationStaff } from "./music-language";
 import { detectChord, getPitchSet, samePitchSet } from "./music-engine.mjs";
 import type { ImprovisationResult } from "./improvisation-lab";
 import type { HarmonyResult } from "./harmony-lab";
@@ -145,6 +146,7 @@ export default function Home() {
   const [deviceId, setDeviceId] = useState("");
   const [midiStatus, setMidiStatus] = useState<MidiStatus>("idle");
   const [browserSound, setBrowserSound] = useState(true);
+  const [glossaryOpen, setGlossaryOpen] = useState(false);
 
   const [activityRunning, setActivityRunning] = useState(false);
   const [sequenceIndex, setSequenceIndex] = useState(0);
@@ -187,7 +189,12 @@ export default function Home() {
   const course = useMemo(() => getCourse(selectedCourseId), [selectedCourseId]);
   const step = course.steps[Math.min(stepIndex, course.steps.length - 1)];
   const courseCompleted = completedSteps[course.id] ?? [];
+  const missingPrerequisites = (course.prerequisites ?? []).filter((courseId) => {
+    const prerequisite = getCourse(courseId);
+    return (completedSteps[courseId]?.length ?? 0) < prerequisite.steps.length;
+  });
   const sequenceNotes = step.sequence ?? [];
+  const lessonTerms = getLessonTerms(step);
   const targetNote = sequenceNotes[sequenceIndex] ?? sequenceNotes[0];
   const accuracy = attempts ? Math.round((correct / attempts) * 100) : 100;
   const totalCompleted = Object.values(completedSteps).reduce((sum, ids) => sum + ids.length, 0);
@@ -449,12 +456,14 @@ export default function Home() {
         lastCorrectAtRef.current = now;
         if (result.complete) {
           markStepComplete(activeStep, Math.round(((correct + 1) / (attempts + 1)) * 100));
-          setFeedback("Phrase complete. Now hear it once as a musical sentence, not a row of correct notes.");
+          setFeedback("Complete. Now hear it as one short musical thought, not a row of separate keys.");
           createAdaptiveDrill();
         } else {
           sequenceIndexRef.current = result.nextIndex;
           setSequenceIndex(result.nextIndex);
-          setFeedback(gap && gap < 130 ? `Correct. Give ${noteName(sequenceRef.current[result.nextIndex])} a little more time.` : `Good. Next, ${noteName(sequenceRef.current[result.nextIndex])}.`);
+          setFeedback(activeStep.notation?.showNames === false
+            ? "Good. Read the next highlighted symbol. Is it higher, lower, or the same?"
+            : gap && gap < 130 ? `Correct. Give ${noteName(sequenceRef.current[result.nextIndex])} a little more time.` : `Good. Next, ${noteName(sequenceRef.current[result.nextIndex])}.`);
         }
       } else {
         const wrong = noteName(midi);
@@ -615,7 +624,9 @@ export default function Home() {
     activityRunningRef.current = true;
     setActivityRunning(true);
     setStepComplete(false);
-    if (step.kind === "sequence") setFeedback(`Begin with ${noteName(sequenceRef.current[sequenceIndexRef.current])}. Hear the direction before you play.`);
+    if (step.kind === "sequence") setFeedback(step.notation?.showNames === false
+      ? "Read the highlighted symbol, then play its key. Notice whether it is higher, lower, or repeated."
+      : `Begin with ${noteName(sequenceRef.current[sequenceIndexRef.current])}. Hear the direction before you play.`);
     else if (step.kind === "chord") setFeedback(`Build ${step.targetName}. Hold each note so Cadence can hear the complete chord.`);
     else setFeedback("Recording. Start with a clear idea, and let silence be part of it.");
   };
@@ -778,8 +789,8 @@ export default function Home() {
         <section className="today-view">
           <div className="today-intro">
             <p className="eyebrow">{hydrated ? dayGreeting() : "Welcome"}, Romanas</p>
-            <h1>Learn the language,<br />then make it yours.</h1>
-            <p>Classical craft, harmony, improvisation, composition, and production are one connected path here.</p>
+            <h1>Start with no assumed<br />music vocabulary.</h1>
+            <p>First learn how the keyboard and written page work. Every new music word is translated before classical repertoire, harmony, improvisation, and composition use it.</p>
           </div>
 
           <div className="today-grid">
@@ -807,8 +818,8 @@ export default function Home() {
               </div>
               <div className="path-line"><i style={{ width: `${overallProgress}%` }} /></div>
               <ol className="direction-list">
-                <li><span>01</span><div><strong>Understand</strong><small>Harmony, rhythm, form, and why notes work</small></div></li>
-                <li><span>02</span><div><strong>Interpret</strong><small>Beethoven, Bach, Petzold, Satie, and Chopin</small></div></li>
+                <li><span>01</span><div><strong>Read and understand</strong><small>Keyboard, staff, note names, rhythm, and plain-language theory</small></div></li>
+                <li><span>02</span><div><strong>Play the classics</strong><small>Beethoven first, then Bach, Petzold, Satie, and Chopin</small></div></li>
                 <li><span>03</span><div><strong>Create</strong><small>Improvisation, composition, and production</small></div></li>
               </ol>
               <button className="placement-entry" onClick={() => setView("assessment")}><span>{placementProfile ? `${placementProfile.overall}%` : "≈"}</span><div><strong>{placementProfile ? "Recalibrate starting point" : "Calibrate my starting point"}</strong><small>{placementProfile ? `Current entry: ${getCourse(placementProfile.recommendedCourseId).title}` : "Four playable tasks · about five minutes"}</small></div><i>→</i></button>
@@ -909,17 +920,28 @@ export default function Home() {
               </div>
               <div className="toolbar-actions">
                 {devices.length > 1 && <select aria-label="MIDI input" value={deviceId} onChange={(event) => attachMidiInput(devices.find((item) => item.id === event.target.value))}>{devices.map((device) => <option key={device.id} value={device.id}>{device.name ?? "MIDI input"}</option>)}</select>}
+                <button className={`quiet-button ${glossaryOpen ? "selected" : ""}`} aria-expanded={glossaryOpen} onClick={() => setGlossaryOpen((value) => !value)}>Music words</button>
                 <button className="quiet-button" onClick={() => setBrowserSound((value) => !value)}>{browserSound ? "Sound on" : "Sound off"}</button>
                 <button className="quiet-button" onClick={connectMidi}>{midiStatus === "connected" ? "Reconnect" : "Connect MIDI"}</button>
               </div>
             </div>
 
+            {glossaryOpen && <FullGlossary onClose={() => setGlossaryOpen(false)} />}
+
             <div className="lesson-stage">
+              {missingPrerequisites.length > 0 && (
+                <section className="prerequisite-notice" aria-label="Recommended preparation">
+                  <div><p className="eyebrow">A gentler route</p><h2>This lesson uses ideas taught earlier</h2><p>You can look around here, but the notes and words will make more sense after {missingPrerequisites.map((id) => getCourse(id).title).join(", ")}.</p></div>
+                  <button className="secondary-button" onClick={() => openCourse(missingPrerequisites[0])}>Learn that first →</button>
+                </section>
+              )}
               <div className="lesson-copy-column">
                 <p className="eyebrow">{reviewMode ? `Spaced review · attempt ${(reviewRecordAtEntry?.repetitions ?? 0) + 1}` : `${step.eyebrow} · ${stepIndex + 1} of ${course.steps.length}`}</p>
                 <h1>{step.title}</h1>
                 <p className="lesson-body">{reviewMode ? reviewVariant.diagnostic : step.body}</p>
               </div>
+
+              {!reviewMode && lessonTerms.length ? <LessonTerms terms={lessonTerms} /> : null}
 
               {reviewMode && (
                 <section className="review-teacher" aria-label="Adaptive review">
@@ -966,11 +988,13 @@ export default function Home() {
 
                 {step.kind === "sequence" && (
                   <div className="play-activity">
-                    <div className="note-path" aria-label="Lesson note sequence">
-                      {sequenceNotes.map((note, index) => <span key={`${note}-${index}`} className={index < sequenceIndex ? "done" : index === sequenceIndex ? "current" : ""}><small>{index + 1}</small><strong>{noteName(note)}</strong></span>)}
-                    </div>
+                    {step.notation
+                      ? <NotationStaff notes={sequenceNotes} currentIndex={sequenceIndex} complete={stepComplete} showNames={step.notation.showNames} />
+                      : <div className="note-path" aria-label="Lesson note sequence">
+                        {sequenceNotes.map((note, index) => <span key={`${note}-${index}`} className={index < sequenceIndex ? "done" : index === sequenceIndex ? "current" : ""}><small>{index + 1}</small><strong>{noteName(note)}</strong></span>)}
+                      </div>}
                     <div className="activity-controls">
-                      <div className="target-readout"><span>Now</span><strong>{stepComplete ? "✓" : noteName(targetNote)}</strong><small>{sequenceIndex}/{sequenceNotes.length} complete</small></div>
+                      <div className="target-readout"><span>Now</span><strong>{stepComplete ? "✓" : step.notation?.showNames === false ? "Read the staff" : noteName(targetNote)}</strong><small>{sequenceIndex}/{sequenceNotes.length} complete</small></div>
                       <button className="primary-button" onClick={beginActivity}>{activityRunning ? "Pause" : sequenceIndex ? "Continue playing" : "Begin playing"}</button>
                     </div>
                   </div>
@@ -1016,7 +1040,7 @@ export default function Home() {
 
               <div className={`feedback-line ${stepComplete ? "complete" : ""}`} role="status" aria-live="polite"><span>{stepComplete ? "✓" : liveChord ? "♫" : "→"}</span><p>{feedback}</p></div>
 
-              {course.repertoire && (!reviewMode || reviewRevealed) && (
+              {course.repertoire && missingPrerequisites.length === 0 && (!reviewMode || reviewRevealed) && (
                 <ScoreReader
                   key={course.id}
                   title={course.title}
@@ -1047,6 +1071,13 @@ export default function Home() {
                 />
               )}
 
+              {course.repertoire && missingPrerequisites.length > 0 && (!reviewMode || reviewRevealed) && (
+                <section className="score-readiness-note">
+                  <div><p className="eyebrow">The full score can wait</p><h2>Learn the page before reading the whole page</h2><p>The guided notes above are safe to explore now. Cadence will add the complete score and its deeper explanation after the earlier reading and rhythm lessons, so you are not asked to decode everything at once.</p></div>
+                  <button className="secondary-button" onClick={() => openCourse(missingPrerequisites[0])}>Go to the next prerequisite →</button>
+                </section>
+              )}
+
               {(!reviewMode || reviewRevealed) && <div className="teaching-notes">
                 <article><p className="eyebrow">Why this matters</p><p>{step.why}</p></article>
                 <article><p className="eyebrow">Listen for</p><p>{step.listenFor ?? step.hint ?? "Notice what feels stable, what creates motion, and where the phrase wants to breathe."}</p></article>
@@ -1064,17 +1095,21 @@ export default function Home() {
                 <div><p className="eyebrow">Live instrument</p><h2>{liveChord ?? (lastNote !== null ? `${noteName(lastNote)} detected` : "Play any note")}</h2></div>
                 <div className="metronome-control"><button className={metronomeOn ? "metronome active" : "metronome"} onClick={() => setMetronomeOn((value) => !value)}><i className={`beat beat-${beat}`} />{metronomeOn ? "Pulse on" : "Metronome"}</button><label><span>{bpm} BPM</span><input type="range" min="48" max="132" value={bpm} onChange={(event) => setBpm(Number(event.target.value))} /></label></div>
               </div>
-              <PianoKeyboard whiteNotes={whiteNotes} blackNotes={blackNotes} activeNotes={activeNotes} targetNotes={reviewMode && !reviewRevealed ? [] : step.kind === "chord" ? step.targetChord ?? [] : targetNote !== undefined ? [targetNote] : []} onNoteOn={handleNoteOn} onNoteOff={handleNoteOff} />
+              <PianoKeyboard whiteNotes={whiteNotes} blackNotes={blackNotes} activeNotes={activeNotes} targetNotes={reviewMode && !reviewRevealed ? [] : step.kind === "chord" ? step.targetChord ?? [] : step.notation?.showNames === false ? [] : targetNote !== undefined ? [targetNote] : []} onNoteOn={handleNoteOn} onNoteOff={handleNoteOff} />
               <p className="keyboard-help">Computer keys: A W S E D F T G Y H U J K · Your MIDI keyboard is used automatically once connected.</p>
             </section>
 
             {(!reviewMode || reviewRevealed) && <section className={`understanding-grid ${course.repertoire ? "repertoire-understanding" : ""}`}>
-              {!course.repertoire && <article className="microscope">
+              {!course.repertoire && course.chapter === "Foundations" ? <article className="microscope beginner-microscope">
+                <div className="section-heading"><div><p className="eyebrow">One idea to keep</p><h2>What am I learning here?</h2></div></div>
+                <p>{step.why}</p>
+                <div className="microscope-detail"><span>How to know it worked</span><p>{step.hint ?? step.listenFor ?? "You can show the idea once at the keyboard and explain it in your own everyday words."}</p></div>
+              </article> : !course.repertoire ? <article className="microscope">
                 <div className="section-heading"><div><p className="eyebrow">Music microscope</p><h2>Why this chord?</h2></div><select value={selectedConcept} onChange={(event) => setSelectedConcept(event.target.value)}><option>C major</option><option>G7</option><option>A minor</option><option>E minor</option></select></div>
                 <div className="microscope-symbol"><strong>{explanation.symbol}</strong><span>{explanation.role}</span></div>
                 <p>{explanation.explanation}</p>
                 <div className="microscope-detail"><span>Try it</span><p>{explanation.experiment}</p></div>
-              </article>}
+              </article> : null}
               <article className="coach-card">
                 <p className="eyebrow">{drill.eyebrow}</p><h2>{drill.title}</h2><p>{drill.instruction}</p><strong>{drill.repetitions}</strong><div><span>Why this drill</span><p>{drill.reason}</p></div>
               </article>
