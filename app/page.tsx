@@ -196,6 +196,24 @@ export default function Home() {
   const sequenceNotes = step.sequence ?? [];
   const lessonTerms = getLessonTerms(step);
   const targetNote = sequenceNotes[sequenceIndex] ?? sequenceNotes[0];
+  const liveKeyDisplay = activeNotes.length
+    ? activeNotes.map(noteName).join(" · ")
+    : lastNote !== null ? noteName(lastNote) : "Play any key";
+  const liveKeyCaption = activeNotes.length
+    ? "Pressed now"
+    : lastNote !== null ? "Last key played" : "Waiting for your keyboard";
+  const nextLessonDisplay = step.kind === "chord"
+    ? step.targetName ?? "Build the chord"
+    : step.kind === "sequence" && step.notation?.showNames === false
+      ? "Read the staff"
+      : targetNote !== undefined ? noteName(targetNote) : "Explore freely";
+  const pianoTargetNotes = reviewMode && !reviewRevealed
+    ? []
+    : step.kind === "chord"
+      ? step.targetChord ?? []
+      : step.notation?.showNames === false
+        ? []
+        : targetNote !== undefined ? [targetNote] : [];
   const accuracy = attempts ? Math.round((correct / attempts) * 100) : 100;
   const totalCompleted = Object.values(completedSteps).reduce((sum, ids) => sum + ids.length, 0);
   const overallProgress = Math.round((totalCompleted / getStepCount()) * 100);
@@ -928,6 +946,22 @@ export default function Home() {
 
             {glossaryOpen && <FullGlossary onClose={() => setGlossaryOpen(false)} />}
 
+            <section className="practice-dock" aria-label="Always visible practice keyboard">
+              <div className="practice-dock-heading">
+                <div className="live-key-readout" aria-live="polite">
+                  <p className="eyebrow">Current key</p>
+                  <div><strong>{liveKeyDisplay}</strong><span>{liveKeyCaption}{liveChord ? ` · ${liveChord}` : ""}</span></div>
+                </div>
+                <div className="next-key-readout">
+                  <span>Next in lesson</span>
+                  <strong>{stepComplete ? "Complete ✓" : nextLessonDisplay}</strong>
+                </div>
+                <div className="metronome-control"><button className={metronomeOn ? "metronome active" : "metronome"} onClick={() => setMetronomeOn((value) => !value)}><i className={`beat beat-${beat}`} />{metronomeOn ? "Pulse on" : "Metronome"}</button><label><span>{bpm} BPM</span><input aria-label="Metronome tempo" type="range" min="48" max="132" value={bpm} onChange={(event) => setBpm(Number(event.target.value))} /></label></div>
+              </div>
+              <PianoKeyboard whiteNotes={whiteNotes} blackNotes={blackNotes} activeNotes={activeNotes} targetNotes={pianoTargetNotes} onNoteOn={handleNoteOn} onNoteOff={handleNoteOff} />
+              <p className="keyboard-help">Play your MIDI keyboard, tap the piano, or use A W S E D F T G Y H U J K.</p>
+            </section>
+
             <div className="lesson-stage">
               {missingPrerequisites.length > 0 && (
                 <section className="prerequisite-notice" aria-label="Recommended preparation">
@@ -1090,15 +1124,6 @@ export default function Home() {
               </div>
             </div>
 
-            <section className="instrument-section">
-              <div className="instrument-heading">
-                <div><p className="eyebrow">Live instrument</p><h2>{liveChord ?? (lastNote !== null ? `${noteName(lastNote)} detected` : "Play any note")}</h2></div>
-                <div className="metronome-control"><button className={metronomeOn ? "metronome active" : "metronome"} onClick={() => setMetronomeOn((value) => !value)}><i className={`beat beat-${beat}`} />{metronomeOn ? "Pulse on" : "Metronome"}</button><label><span>{bpm} BPM</span><input type="range" min="48" max="132" value={bpm} onChange={(event) => setBpm(Number(event.target.value))} /></label></div>
-              </div>
-              <PianoKeyboard whiteNotes={whiteNotes} blackNotes={blackNotes} activeNotes={activeNotes} targetNotes={reviewMode && !reviewRevealed ? [] : step.kind === "chord" ? step.targetChord ?? [] : step.notation?.showNames === false ? [] : targetNote !== undefined ? [targetNote] : []} onNoteOn={handleNoteOn} onNoteOff={handleNoteOff} />
-              <p className="keyboard-help">Computer keys: A W S E D F T G Y H U J K · Your MIDI keyboard is used automatically once connected.</p>
-            </section>
-
             {(!reviewMode || reviewRevealed) && <section className={`understanding-grid ${course.repertoire ? "repertoire-understanding" : ""}`}>
               {!course.repertoire && course.chapter === "Foundations" ? <article className="microscope beginner-microscope">
                 <div className="section-heading"><div><p className="eyebrow">One idea to keep</p><h2>What am I learning here?</h2></div></div>
@@ -1245,11 +1270,11 @@ function PianoKeyboard({
       <div className="white-keys">
         {whiteNotes.map((note) => (
           <button key={note} aria-label={noteName(note)} className={`white-key ${activeNotes.includes(note) ? "active" : ""} ${targetNotes.some((target) => target % 12 === note % 12) ? "target" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); onNoteOn(note); }} onPointerUp={() => onNoteOff(note)} onPointerCancel={() => onNoteOff(note)}>
-            {(note % 12 === 0 || activeNotes.includes(note)) && <span>{noteName(note)}</span>}
+            <span>{noteName(note)}</span>
           </button>
         ))}
       </div>
-      {blackNotes.map((note) => <button key={note} aria-label={noteName(note)} className={`black-key ${activeNotes.includes(note) ? "active" : ""} ${targetNotes.some((target) => target % 12 === note % 12) ? "target" : ""}`} style={{ left: blackPosition(note) }} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); onNoteOn(note); }} onPointerUp={() => onNoteOff(note)} onPointerCancel={() => onNoteOff(note)}><span>{activeNotes.includes(note) ? noteName(note) : ""}</span></button>)}
+      {blackNotes.map((note) => <button key={note} aria-label={noteName(note)} className={`black-key ${activeNotes.includes(note) ? "active" : ""} ${targetNotes.some((target) => target % 12 === note % 12) ? "target" : ""}`} style={{ left: blackPosition(note) }} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); onNoteOn(note); }} onPointerUp={() => onNoteOff(note)} onPointerCancel={() => onNoteOff(note)}><span>{noteName(note)}</span></button>)}
     </div>
   );
 }

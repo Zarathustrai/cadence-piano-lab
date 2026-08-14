@@ -62,6 +62,24 @@ test("teaches notation and translates vocabulary before Beethoven", async () => 
   assert.match(language, /Higher symbol = move right on the keyboard/);
 });
 
+test("keeps a readable live keyboard visible throughout every lesson", async () => {
+  const [page, styles] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  const dockAt = page.indexOf('className="practice-dock"');
+  const lessonAt = page.indexOf('className="lesson-stage"');
+  assert.ok(dockAt > 0 && dockAt < lessonAt, "the live piano appears before the lesson content");
+  assert.match(page, /Current key/);
+  assert.match(page, /Next in lesson/);
+  assert.match(page, /aria-live="polite"/);
+  assert.match(page, /<span>\{noteName\(note\)\}<\/span>/);
+  assert.match(styles, /\.practice-dock \{[^}]*position: sticky;[^}]*top: 130px;/);
+  assert.match(styles, /\.live-key-readout strong \{[^}]*font-size: 30px;/);
+  assert.match(styles, /\.lesson-body \{[^}]*font-size: 19px;/);
+});
+
 test("keeps the AI boundary isolated and local persistence explicit", async () => {
   const [page, coach, curriculum, hosting] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
