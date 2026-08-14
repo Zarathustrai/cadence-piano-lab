@@ -9,6 +9,7 @@ import { analyzeHarmonyProgression, buildPreset, chordsForKey, HARMONY_PRESETS, 
 import { analyzeProject, assembleProject, PROJECT_BRIEFS, PROJECT_TRANSFORMS, transformPerformance } from "../app/composition-project-engine.mjs";
 import { buildChord, buildDiatonicHarmony, buildScale, CHORD_QUALITIES, SCALE_MODES, THEORY_ROOTS } from "../app/theory-engine.mjs";
 import { getPersonalizedRepertoireTransfer, getRepertoireAnalysis, REPERTOIRE_ANALYSIS, repertoireAnalysisCount } from "../app/repertoire-analysis.mjs";
+import { ledgerLinesForMidi, staffYForMidi } from "../app/notation-geometry.mjs";
 
 async function render() {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -60,6 +61,32 @@ test("teaches notation and translates vocabulary before Beethoven", async () => 
   assert.match(language, /Home note \(tonic\).*teacher word for home/);
   assert.match(language, /Musical sentence.*informal comparison/);
   assert.match(language, /Higher symbol = move right on the keyboard/);
+});
+
+test("maps notation to one diatonic staff and draws only needed ledger lines", async () => {
+  assert.equal(staffYForMidi(77), 56, "F5 is the top staff line");
+  assert.equal(staffYForMidi(74), 71, "D5 is the fourth staff line");
+  assert.equal(staffYForMidi(71), 86, "B4 is the middle staff line");
+  assert.equal(staffYForMidi(67), 101, "G4 is the second staff line");
+  assert.equal(staffYForMidi(64), 116, "E4 is the bottom staff line");
+  assert.equal(staffYForMidi(60), 131, "C4 is one ledger line below");
+  assert.equal(staffYForMidi(62), 123.5, "D4 is the space above middle C");
+  assert.equal(staffYForMidi(55), 153.5, "G3 keeps the same seven-and-a-half-unit diatonic spacing");
+  assert.deepEqual(ledgerLinesForMidi(60), [131]);
+  assert.deepEqual(ledgerLinesForMidi(55), [131, 146], "G3 uses C4 and A3 ledgers");
+  assert.ok(!ledgerLinesForMidi(55).includes(153.5), "a ledger line never runs through G3");
+
+  const [language, styles] = await Promise.all([
+    readFile(new URL("../app/music-language.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(language, /<svg className="notation-score"[\s\S]*viewBox=\{`0 0 \$\{width\} \$\{STAFF_UNIT_HEIGHT\}`\}/);
+  assert.match(language, /<title id="notation-score-summary">\{scoreSummary\}<\/title>/);
+  assert.match(language, /<p className="sr-only" aria-live="polite">\{currentCue\}<\/p>/);
+  assert.match(language, /showNames && !complete[\s\S]*noteName\(currentNote\)/);
+  assert.match(language, /directionCue\(notes, currentIndex, complete\)/);
+  assert.match(styles, /\.notation-score \{[^}]*height: 170px;[^}]*margin-inline: auto;[^}]*\}/);
+  assert.doesNotMatch(styles, /\.notation-score \{[^}]*min-width:/);
 });
 
 test("keeps a readable live keyboard visible throughout every lesson", async () => {

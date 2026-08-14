@@ -1,4 +1,5 @@
 import type { LessonStep, MusicTerm } from "./curriculum";
+import { ledgerLinesForMidi, STAFF_LINE_Y, STAFF_UNIT_HEIGHT, staffYForMidi } from "./notation-geometry.mjs";
 
 export const MUSIC_GLOSSARY: MusicTerm[] = [
   { term: "Note", plain: "One musical sound. On the page, it is shown by a small oval symbol." },
@@ -68,47 +69,66 @@ type NotationStaffProps = {
   showNames?: boolean;
 };
 
-const NATURAL_LETTERS: Record<number, number> = { 0: 0, 2: 1, 4: 2, 5: 3, 7: 4, 9: 5, 11: 6 };
 const NOTE_NAMES = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
 
 function noteName(midi: number) {
   return `${NOTE_NAMES[midi % 12]}${Math.floor(midi / 12) - 1}`;
 }
 
-function staffTop(midi: number) {
-  const octave = Math.floor(midi / 12) - 1;
-  const pitch = midi % 12;
-  const naturalPitch = NATURAL_LETTERS[pitch] ?? NATURAL_LETTERS[(pitch + 11) % 12] ?? 0;
-  const diatonicPosition = octave * 7 + naturalPitch;
-  const e4Position = 4 * 7 + 2;
-  return 80 - (diatonicPosition - e4Position) * 7.5;
+function accidentalForMidi(midi: number) {
+  return NOTE_NAMES[((midi % 12) + 12) % 12].slice(1);
+}
+
+function directionCue(notes: number[], currentIndex: number, complete: boolean) {
+  if (complete) return `All ${notes.length} symbols have been read.`;
+  if (currentIndex === 0) return `Symbol 1 of ${notes.length} is highlighted.`;
+  const previousY = staffYForMidi(notes[currentIndex - 1]);
+  const currentY = staffYForMidi(notes[currentIndex]);
+  const direction = currentY < previousY ? "higher" : currentY > previousY ? "lower" : "at the same height";
+  return `Symbol ${currentIndex + 1} of ${notes.length} is highlighted. It is ${direction} than the previous symbol.`;
 }
 
 export function NotationStaff({ notes, currentIndex, complete, showNames = true }: NotationStaffProps) {
-  const width = Math.max(520, notes.length * 52 + 92);
+  const width = Math.max(520, notes.length * 52 + 116);
+  const currentNote = notes[currentIndex];
+  const scoreSummary = showNames
+    ? `Written notes: ${notes.map(noteName).join(", ")}.`
+    : `Written music exercise with ${notes.length} note symbols.`;
+  const currentCue = showNames && !complete && currentNote !== undefined
+    ? `Symbol ${currentIndex + 1} of ${notes.length}: ${noteName(currentNote)} is highlighted.`
+    : directionCue(notes, currentIndex, complete);
 
   return (
     <div className="notation-reader">
       <div className="notation-scroll">
-        <div className="notation-track" style={{ width }} role="img" aria-label={`Written notes: ${notes.map(noteName).join(", ")}`}>
-          <span className="treble-clef" aria-hidden="true">𝄞</span>
-          <div className="staff-lines" aria-hidden="true">{[0, 1, 2, 3, 4].map((line) => <i key={line} />)}</div>
+        <svg className="notation-score" width={width} height={STAFF_UNIT_HEIGHT} viewBox={`0 0 ${width} ${STAFF_UNIT_HEIGHT}`} role="img" aria-labelledby="notation-score-summary">
+          <title id="notation-score-summary">{scoreSummary}</title>
+          <g className="notation-staff" aria-hidden="true">
+            {Object.entries(STAFF_LINE_Y).map(([name, y]) => <line key={name} x1="70" x2={width - 20} y1={y} y2={y} />)}
+            <text className="notation-clef" x="20" y="126">𝄞</text>
+          </g>
           {notes.map((note, index) => {
             const state = index < currentIndex || complete ? "read" : index === currentIndex ? "current" : "waiting";
+            const x = 96 + index * 52;
+            const y = staffYForMidi(note);
+            const accidental = accidentalForMidi(note);
+            const labelY = y > 138 ? y - 12 : y + 22;
             return (
-              <span
+              <g
                 key={`${note}-${index}`}
-                className={`staff-note ${state} ${note === 60 ? "middle-c" : ""}`}
-                style={{ left: 82 + index * 52, top: `${staffTop(note)}%` }}
-                aria-label={`${index + 1}: ${noteName(note)}, ${state}`}
+                className={`notation-note ${state}`}
+                aria-hidden="true"
               >
-                <i aria-hidden="true" />
-                {showNames && <small>{noteName(note)}</small>}
-              </span>
+                {ledgerLinesForMidi(note).map((ledgerY) => <line key={ledgerY} className="notation-ledger" x1={x - 15} x2={x + 15} y1={ledgerY} y2={ledgerY} />)}
+                {accidental && <text className="notation-accidental" x={x - 19} y={y + 4}>{accidental}</text>}
+                <ellipse className="notation-notehead" cx={x} cy={y} rx="9" ry="6" transform={`rotate(-16 ${x} ${y})`} />
+                {showNames && <text className="notation-label" x={x} y={labelY}>{noteName(note)}</text>}
+              </g>
             );
           })}
-        </div>
+        </svg>
       </div>
+      <p className="sr-only" aria-live="polite">{currentCue}</p>
       <div className="notation-key">
         <span><i className="notation-current" /> Read this note now</span>
         <span>Higher symbol = move right on the keyboard</span>

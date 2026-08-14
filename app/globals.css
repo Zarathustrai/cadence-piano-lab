@@ -226,21 +226,14 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .play-activity { display: flex; flex-direction: column; gap: 26px; }
 .notation-reader { background: oklch(0.98 0.006 82); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .notation-scroll { overflow-x: auto; padding: 10px 0 0; }
-.notation-track { height: 170px; min-width: 100%; position: relative; }
-.staff-lines { inset: 36px 20px 34px 72px; position: absolute; }
-.staff-lines i { background: oklch(0.47 0.02 250); height: 1px; left: 0; position: absolute; right: 0; }
-.staff-lines i:nth-child(1) { top: 20%; }
-.staff-lines i:nth-child(2) { top: 35%; }
-.staff-lines i:nth-child(3) { top: 50%; }
-.staff-lines i:nth-child(4) { top: 65%; }
-.staff-lines i:nth-child(5) { top: 80%; }
-.treble-clef { font-family: Georgia, "Times New Roman", serif; font-size: 62px; left: 21px; line-height: 1; position: absolute; top: 50px; z-index: 2; }
-.staff-note { height: 20px; position: absolute; transform: translate(-50%, -50%); width: 34px; z-index: 3; }
-.staff-note > i { background: oklch(0.31 0.025 250); border-radius: 50%; display: block; height: 10px; left: 8px; position: absolute; top: 5px; transform: rotate(-16deg); width: 16px; }
-.staff-note.current > i { background: var(--primary); box-shadow: 0 0 0 6px oklch(0.71 0.11 252 / .22); }
-.staff-note.read > i { background: var(--success); }
-.staff-note.middle-c::before { background: oklch(0.47 0.02 250); content: ""; height: 1px; left: 3px; position: absolute; top: 10px; width: 26px; }
-.staff-note small { color: var(--muted); font-family: var(--font-mono); font-size: 11px; left: 50%; position: absolute; top: 23px; transform: translateX(-50%); }
+.notation-score { display: block; height: 170px; margin-inline: auto; overflow: visible; }
+.notation-staff line, .notation-ledger { stroke: oklch(0.47 0.02 250); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.notation-clef { fill: oklch(0.31 0.025 250); font-family: Georgia, "Times New Roman", serif; font-size: 72px; }
+.notation-notehead { fill: oklch(0.31 0.025 250); }
+.notation-note.current .notation-notehead { fill: var(--primary); filter: drop-shadow(0 0 5px oklch(0.71 0.11 252 / .62)); }
+.notation-note.read .notation-notehead { fill: var(--success); }
+.notation-accidental { fill: oklch(0.31 0.025 250); font-family: var(--font-mono); font-size: 14px; text-anchor: middle; }
+.notation-label { fill: var(--muted); font-family: var(--font-mono); font-size: 11px; text-anchor: middle; }
 .notation-key { align-items: center; background: oklch(0.95 0.012 82); border-top: 1px solid var(--line); color: var(--muted); display: flex; flex-wrap: wrap; font-size: 13px; gap: 18px; min-height: 44px; padding: 9px 14px; }
 .notation-key span { align-items: center; display: inline-flex; gap: 7px; }
 .notation-key i { background: var(--primary); border-radius: 50%; display: inline-block; height: 8px; width: 12px; }
