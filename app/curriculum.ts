@@ -1,3 +1,5 @@
+import { ODE_TO_JOY_SCORE } from "./score-practice.mjs";
+
 export type StepKind =
   | "learn"
   | "listen"
@@ -48,6 +50,12 @@ export type ScoreSection = {
   harmony: string;
 };
 
+export type ScorePosition = {
+  midi: number;
+  measure: number;
+  beats: number;
+};
+
 export type Course = {
   id: string;
   number: string;
@@ -67,6 +75,7 @@ export type Course = {
     practiceBpm: number;
     sections: ScoreSection[];
     completeWork: boolean;
+    practiceSequence?: ScorePosition[];
   };
 };
 
@@ -360,6 +369,7 @@ export const COURSES: Course[] = [
       totalMeasures: 17,
       practiceBpm: 88,
       completeWork: true,
+      practiceSequence: ODE_TO_JOY_SCORE,
       sections: [
         { title: "Phrase A", measures: [1, 4], focus: "Repeated notes with direction", harmony: "Tonic to dominant" },
         { title: "Phrase A varied", measures: [5, 8], focus: "Recognize the changed cadence", harmony: "Return to tonic" },
@@ -375,7 +385,7 @@ export const COURSES: Course[] = [
       { ...sequence("ode-a", "Read the first musical thought", "Follow the highlighted notes on the staff. Equal-height symbols repeat the same key. A symbol one step higher or lower moves to the neighboring white key.", [64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 64, 62, 62], "The line rises, turns, and settles while the beat continues."), notation: { showNames: true } },
       { ...sequence("ode-a2", "Read the familiar opening with a new ending", "The beginning matches the first thought. Near the end, the note shape changes and settles on middle C.", [64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 62, 60, 60], "A familiar opening plus a changed ending creates recognition without exact repetition."), notation: { showNames: true }, terms: [{ term: "Variation", plain: "A recognizable idea repeated with something changed." }] },
       { ...sequence("ode-b", "Read the higher contrasting thought", "Watch the staff shape reach upward, then come back down. Let the higher point sound a little stronger instead of simply louder everywhere.", [62, 62, 64, 60, 62, 64, 65, 64, 60, 62, 64, 65, 64, 62, 60, 62, 55], "The new shape extends the range and postpones the feeling of home."), notation: { showNames: true } },
-      sequence("ode-complete", "Join the four thoughts", "Play the complete melody without stopping. If you make a mistake, continue to the next note. Pause only at the ends of the four musical thoughts.", [64,64,65,67,67,65,64,62,60,60,62,64,64,62,62,64,64,65,67,67,65,64,62,60,60,62,64,62,60,60,62,62,64,60,62,64,65,64,60,62,64,65,64,62,60,62,55,64,64,65,67,67,65,64,62,60,60,62,64,62,60,60], "A full performance trains recovery, continuity, and musical memory."),
+      { ...sequence("ode-complete", "Join the four thoughts", "Play the complete melody without stopping. If you make a mistake, continue to the next note. Pause only at the ends of the four musical thoughts.", [64,64,65,67,67,65,64,62,60,60,62,64,64,62,62,64,64,65,67,67,65,64,62,60,60,62,64,62,60,60,62,62,64,60,62,64,65,64,60,62,64,65,64,62,60,62,55,64,64,65,67,67,65,64,62,60,60,62,64,62,60,60], "A full performance trains recovery, continuity, and musical memory."), notation: { showNames: true } },
       quiz("ode-form", "Why does the second thought sound related?", "Choose what your ear and the staff both show.", [{ label: "It repeats the opening and changes the ending", correct: true }, { label: "Every note is different" }, { label: "The steady beat disappears" }], "Beethoven repeats the recognizable opening, then gives it a different ending. This is one of composition's most useful techniques.", "You can use the same repeat-and-change principle in your own short ideas."),
     ],
   },

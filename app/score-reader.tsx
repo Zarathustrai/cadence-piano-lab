@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
-import type { ScoreSection } from "./curriculum";
+import type { ScorePosition, ScoreSection } from "./curriculum";
 import { evaluateScoreSession } from "./learning-engine.mjs";
+import { NotationStaff } from "./music-language";
+import { getScorePracticeStep, scoreTimeAtPosition } from "./score-practice.mjs";
 
 type PlayedNoteEvent = { midi: number; token: number } | null;
 
@@ -27,7 +29,9 @@ type ScoreReaderProps = {
   totalMeasures: number;
   practiceBpm: number;
   sections: ScoreSection[];
+  practiceSequence?: ScorePosition[];
   playedNote: PlayedNoteEvent;
+  lessonActivityRunning?: boolean;
   completedMeasures: number[];
   onMeasureComplete: (measure: number) => void;
   onFeedback: (message: string) => void;
@@ -65,7 +69,9 @@ export function ScoreReader({
   totalMeasures,
   practiceBpm,
   sections,
+  practiceSequence,
   playedNote,
+  lessonActivityRunning = false,
   completedMeasures,
   onMeasureComplete,
   onFeedback,
@@ -76,17 +82,23 @@ export function ScoreReader({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
   const matchedNotesRef = useRef<Set<number>>(new Set());
+  const lastProcessedTokenRef = useRef(0);
   const activeSectionRef = useRef(0);
   const sessionRef = useRef<SessionCapture>(emptySession());
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [currentMeasure, setCurrentMeasure] = useState(1);
+  const initialScorePosition = practiceSequence?.[0];
+  const [status, setStatus] = useState<"loading" | "ready" | "error">(initialScorePosition ? "ready" : "loading");
+  const [currentMeasure, setCurrentMeasure] = useState(initialScorePosition?.measure ?? 1);
   const [activeSection, setActiveSection] = useState(0);
   const [following, setFollowing] = useState(false);
+  const [practiceIndex, setPracticeIndex] = useState(0);
+  const [practiceComplete, setPracticeComplete] = useState(false);
   const [loopSection, setLoopSection] = useState(true);
-  const [expectedNotes, setExpectedNotes] = useState<number[]>([]);
+  const [expectedNotes, setExpectedNotes] = useState<number[]>(initialScorePosition ? [initialScorePosition.midi] : []);
   const [matchedCount, setMatchedCount] = useState(0);
   const [targetBpm, setTargetBpm] = useState(practiceBpm);
   const [liveSession, setLiveSession] = useState(() => evaluateScoreSession({ tempo: practiceBpm }));
+  const [lastSession, setLastSession] = useState<ScoreSessionResult | null>(null);
+  const explicitScore = Boolean(practiceSequence?.length);
 
   const refreshLiveSession = useCallback(() => {
     const metrics = evaluateScoreSession({ ...sessionRef.current, tempo: targetBpm });
@@ -108,6 +120,7 @@ export function ScoreReader({
       completedAt: new Date().toISOString(),
       ...metrics,
     };
+    setLastSession(result);
     onSessionResult(result);
     return result;
   }, [onSessionResult, targetBpm]);
@@ -140,6 +153,23 @@ export function ScoreReader({
   }, [onSectionChange, readExpectedNotes, sections, totalMeasures]);
 
   const jumpToMeasure = useCallback((measure: number) => {
+    if (practiceSequence?.length) {
+      const nextIndex = practiceSequence.findIndex((position) => position.measure === measure);
+      if (nextIndex < 0) return;
+      setPracticeIndex(nextIndex);
+      setPracticeComplete(false);
+      setCurrentMeasure(measure);
+      setExpectedNotes([practiceSequence[nextIndex].midi]);
+      matchedNotesRef.current.clear();
+      setMatchedCount(0);
+      const sectionIndex = sections.findIndex((section) => measure >= section.measures[0] && measure <= section.measures[1]);
+      if (sectionIndex >= 0) {
+        activeSectionRef.current = sectionIndex;
+        setActiveSection(sectionIndex);
+        onSectionChange?.(sectionIndex);
+      }
+      return;
+    }
     const osmd = osmdRef.current;
     if (!osmd) return;
     osmd.cursor.reset();
@@ -147,7 +177,7 @@ export function ScoreReader({
     matchedNotesRef.current.clear();
     setMatchedCount(0);
     updateCursorState();
-  }, [updateCursorState]);
+  }, [onSectionChange, practiceSequence, sections, updateCursorState]);
 
   const chooseSection = useCallback((index: number) => {
     saveSession(sections[activeSectionRef.current]?.title ?? "Score practice");
@@ -161,6 +191,7 @@ export function ScoreReader({
   }, [jumpToMeasure, onFeedback, onSectionChange, resetSession, saveSession, sections]);
 
   useEffect(() => {
+    if (practiceSequence?.length) return;
     let disposed = false;
     const renderScore = async () => {
       if (!containerRef.current) return;
@@ -204,10 +235,10 @@ export function ScoreReader({
       osmdRef.current?.cursor.Dispose();
       osmdRef.current = null;
     };
-  }, [onSectionChange, scoreUrl]);
+  }, [onSectionChange, practiceSequence, scoreUrl]);
 
   useEffect(() => {
-    if (!playedNote || !following || status !== "ready") return;
+    if (explicitScore || !playedNote || !following || status !== "ready") return;
     const osmd = osmdRef.current;
     if (!osmd) return;
 
@@ -274,7 +305,73 @@ export function ScoreReader({
 
     updateCursorState();
     onFeedback(`Correct. The score has moved forward${nextMeasure > completedMeasure ? ` into measure ${nextMeasure}` : ""}.`);
-  }, [following, jumpToMeasure, loopSection, onFeedback, onMeasureComplete, playedNote, readExpectedNotes, refreshLiveSession, resetSession, saveSession, sections, status, targetBpm, updateCursorState]);
+  }, [explicitScore, following, jumpToMeasure, loopSection, onFeedback, onMeasureComplete, playedNote, readExpectedNotes, refreshLiveSession, resetSession, saveSession, sections, status, targetBpm, updateCursorState]);
+
+  useEffect(() => {
+    if (!explicitScore || !practiceSequence?.length || !playedNote || !following || status !== "ready") return;
+    if (playedNote.token === lastProcessedTokenRef.current) return;
+    lastProcessedTokenRef.current = playedNote.token;
+
+    const current = practiceSequence[practiceIndex];
+    if (!current) return;
+    const progression = getScorePracticeStep(practiceSequence, practiceIndex, playedNote.midi);
+    if (!progression.accepted) {
+      sessionRef.current.mistakes += 1;
+      refreshLiveSession();
+      onFeedback(`${nameMidi(playedNote.midi)} is nearby, but the highlighted score note is ${nameMidi(current.midi)}. Keep your eyes on the blue notehead and try again.`);
+      return;
+    }
+
+    const acceptedAt = performance.now();
+    const scoreTime = scoreTimeAtPosition(practiceSequence, practiceIndex);
+    if (sessionRef.current.lastAcceptedAt !== null && sessionRef.current.lastScoreTime !== null) {
+      const scoreDistanceInWholeNotes = scoreTime - sessionRef.current.lastScoreTime;
+      if (scoreDistanceInWholeNotes > 0) {
+        const expectedGap = scoreDistanceInWholeNotes * 4 * (60000 / targetBpm);
+        const actualGap = acceptedAt - sessionRef.current.lastAcceptedAt;
+        sessionRef.current.timingRatios.push(actualGap / expectedGap);
+        if (actualGap > expectedGap * 1.85 + 120) sessionRef.current.pauses += 1;
+      }
+    }
+    sessionRef.current.correct += 1;
+    sessionRef.current.lastAcceptedAt = acceptedAt;
+    sessionRef.current.lastScoreTime = scoreTime;
+    refreshLiveSession();
+
+    const nextIndex = progression.nextIndex;
+    const next = practiceSequence[nextIndex];
+    if (progression.completedMeasure !== null) onMeasureComplete(progression.completedMeasure);
+
+    const section = sections[activeSectionRef.current];
+    const sectionFinished = current.measure === section.measures[1] && (!next || next.measure > section.measures[1]);
+    if (sectionFinished && loopSection) {
+      const saved = saveSession(section.title);
+      resetSession();
+      jumpToMeasure(section.measures[0]);
+      onFeedback(`${section.title} complete${saved ? ` with ${saved.accuracy}% pitch accuracy` : ""}. The score has returned to the start of the section for another pass.`);
+      return;
+    }
+
+    if (!next) {
+      const saved = saveSession(section.title);
+      setPracticeComplete(true);
+      setFollowing(false);
+      setExpectedNotes([]);
+      onFeedback(`Complete score finished at ${targetBpm} BPM${saved ? ` with ${saved.accuracy}% pitch accuracy, ${saved.rhythm}% rhythm, and ${saved.continuity}% continuity` : ""}.`);
+      return;
+    }
+
+    setPracticeIndex(nextIndex);
+    setCurrentMeasure(next.measure);
+    setExpectedNotes([next.midi]);
+    const nextSectionIndex = sections.findIndex((item) => next.measure >= item.measures[0] && next.measure <= item.measures[1]);
+    if (nextSectionIndex >= 0 && nextSectionIndex !== activeSectionRef.current) {
+      activeSectionRef.current = nextSectionIndex;
+      setActiveSection(nextSectionIndex);
+      onSectionChange?.(nextSectionIndex);
+    }
+    onFeedback(`Correct. The highlighted score note is now ${nameMidi(next.midi)}${next.measure !== current.measure ? ` in measure ${next.measure}` : ""}.`);
+  }, [explicitScore, following, jumpToMeasure, loopSection, onFeedback, onMeasureComplete, onSectionChange, playedNote, practiceIndex, practiceSequence, refreshLiveSession, resetSession, saveSession, sections, status, targetBpm]);
 
   const section = sections[activeSection];
   const sectionCompleted = Array.from(
@@ -282,6 +379,26 @@ export function ScoreReader({
     (_, index) => section.measures[0] + index,
   ).filter((measure) => completedMeasures.includes(measure)).length;
   const sectionLength = section.measures[1] - section.measures[0] + 1;
+  const displayedSession = liveSession.positions ? liveSession : lastSession ?? liveSession;
+  const toggleFollowing = () => {
+    const next = !following;
+    if (next && explicitScore && practiceComplete) jumpToMeasure(section.measures[0]);
+    if (next) lastProcessedTokenRef.current = playedNote?.token ?? 0;
+    setFollowing(next);
+    if (osmdRef.current) {
+      osmdRef.current.FollowCursor = next;
+      if (next) osmdRef.current.cursor.show();
+      else osmdRef.current.cursor.hide();
+    }
+    if (next) {
+      resetSession();
+      setPracticeComplete(false);
+      onFeedback(`Score practice started at measure ${currentMeasure}, ${targetBpm} BPM. Play the blue note on the staff and the page will follow you.`);
+    } else {
+      const result = saveSession(section.title);
+      onFeedback(result ? `Practice saved. Pitch ${result.accuracy}%, rhythm ${result.timingSamples ? `${result.rhythm}%` : "still calibrating"}, continuity ${result.continuity}%.` : "Score following paused. Play at least two score positions to save a performance result.");
+    }
+  };
 
   return (
     <section className="score-reader" aria-label={`Full score for ${title}`}>
@@ -293,25 +410,11 @@ export function ScoreReader({
         <div className="score-reader-actions">
           <button
             className={following ? "score-follow active" : "score-follow"}
-            onClick={() => {
-              const next = !following;
-              setFollowing(next);
-              if (osmdRef.current) {
-                osmdRef.current.FollowCursor = next;
-                if (next) osmdRef.current.cursor.show();
-                else osmdRef.current.cursor.hide();
-              }
-              if (next) {
-                resetSession();
-                onFeedback(`Score following started at measure ${currentMeasure}, ${targetBpm} BPM. Play what the blue cursor shows and keep the pulse moving.`);
-              } else {
-                const result = saveSession(section.title);
-                onFeedback(result ? `Practice saved. Pitch ${result.accuracy}%, rhythm ${result.timingSamples ? `${result.rhythm}%` : "still calibrating"}, continuity ${result.continuity}%.` : "Score following paused. Play at least two score positions to save a performance result.");
-              }
-            }}
-            disabled={status !== "ready"}
+            aria-pressed={following}
+            onClick={toggleFollowing}
+            disabled={status !== "ready" || lessonActivityRunning}
           >
-            <i /> {following ? "Following your playing" : "Follow my playing"}
+            <i /> {following ? "Pause score practice" : "Start score practice"}
           </button>
           <button className={loopSection ? "score-loop active" : "score-loop"} onClick={() => setLoopSection((value) => !value)} aria-pressed={loopSection}>↻ Loop section</button>
           <label className="score-tempo-control"><span>{targetBpm} BPM</span><input aria-label="Score practice tempo" type="range" min="36" max="126" value={targetBpm} onChange={(event) => {
@@ -343,20 +446,28 @@ export function ScoreReader({
         <div><span>Harmony</span><strong>{section.harmony}</strong></div>
       </div>
 
-      {analysis}
-
-      <div className="score-session-metrics" aria-label="Live score practice assessment">
-        <div><span>Pitch accuracy</span><strong>{liveSession.positions ? `${liveSession.accuracy}%` : "–"}</strong></div>
-        <div><span>Rhythm</span><strong>{liveSession.timingSamples ? `${liveSession.rhythm}%` : "–"}</strong></div>
-        <div><span>Continuity</span><strong>{liveSession.positions > 1 ? `${liveSession.continuity}%` : "–"}</strong></div>
-        <div><span>Evidence</span><strong>{liveSession.positions} positions</strong></div>
-        <p>Rhythm compares your spacing with the score at {targetBpm} BPM. Continuity notices recovery pauses without punishing expressive touch.</p>
-      </div>
-
       <div className={`score-paper ${status}`}>
         {status === "loading" && <div className="score-loading"><i /><p>Engraving the complete score…</p></div>}
         {status === "error" && <div className="score-error"><strong>The score could not be opened.</strong><p>The teaching lesson still works. Refresh once to try loading the notation again.</p></div>}
-        <div ref={containerRef} className="osmd-container" />
+        {explicitScore && practiceSequence ? (
+          <>
+            <div className={following ? "score-listening-status active" : "score-listening-status"}>
+              <i />
+              <span aria-live="polite">{practiceComplete ? "Complete performance" : lessonActivityRunning ? "Pause the guided exercise before starting full-score practice" : following ? `Listening for ${nameMidi(practiceSequence[practiceIndex]?.midi ?? 60)}` : "Press Start score practice, then play the blue note"}</span>
+              <button className="score-inline-toggle" onClick={toggleFollowing} disabled={lessonActivityRunning}>{following ? "Pause" : practiceComplete ? "Play again" : "Start"}</button>
+            </div>
+            <NotationStaff
+              notes={practiceSequence.map((position) => position.midi)}
+              currentIndex={practiceIndex}
+              complete={practiceComplete}
+              showNames
+              showLegend={false}
+              measureNumbers={practiceSequence.map((position) => position.measure)}
+              durations={practiceSequence.map((position) => position.beats)}
+              ariaLabel={`${title} interactive complete score`}
+            />
+          </>
+        ) : <div ref={containerRef} className="osmd-container" />}
       </div>
 
       <div className="score-transport">
@@ -372,6 +483,16 @@ export function ScoreReader({
         </div>
         <button onClick={() => jumpToMeasure(Math.min(totalMeasures, currentMeasure + 1))} disabled={status !== "ready" || currentMeasure >= totalMeasures}>Next measure →</button>
       </div>
+
+      <div className="score-session-metrics" aria-label="Live score practice assessment">
+        <div><span>Pitch accuracy</span><strong>{displayedSession.positions ? `${displayedSession.accuracy}%` : "–"}</strong></div>
+        <div><span>Rhythm</span><strong>{displayedSession.timingSamples ? `${displayedSession.rhythm}%` : "–"}</strong></div>
+        <div><span>Continuity</span><strong>{displayedSession.positions > 1 ? `${displayedSession.continuity}%` : "–"}</strong></div>
+        <div><span>{liveSession.positions ? "Evidence" : lastSession ? "Last pass" : "Evidence"}</span><strong>{displayedSession.positions} positions</strong></div>
+        <p>Rhythm compares your spacing with the score at {targetBpm} BPM. Continuity notices recovery pauses without punishing expressive touch.</p>
+      </div>
+
+      {analysis}
     </section>
   );
 }

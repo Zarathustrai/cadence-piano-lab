@@ -1,3 +1,4 @@
+import { useEffect, useId, useMemo, useRef } from "react";
 import type { LessonStep, MusicTerm } from "./curriculum";
 import { ledgerLinesForMidi, STAFF_LINE_Y, STAFF_UNIT_HEIGHT, staffYForMidi } from "./notation-geometry.mjs";
 
@@ -67,6 +68,10 @@ type NotationStaffProps = {
   currentIndex: number;
   complete: boolean;
   showNames?: boolean;
+  measureNumbers?: number[];
+  durations?: number[];
+  showLegend?: boolean;
+  ariaLabel?: string;
 };
 
 const NOTE_NAMES = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"];
@@ -88,8 +93,27 @@ function directionCue(notes: number[], currentIndex: number, complete: boolean) 
   return `Symbol ${currentIndex + 1} of ${notes.length} is highlighted. It is ${direction} than the previous symbol.`;
 }
 
-export function NotationStaff({ notes, currentIndex, complete, showNames = true }: NotationStaffProps) {
-  const width = Math.max(520, notes.length * 52 + 116);
+export function NotationStaff({
+  notes,
+  currentIndex,
+  complete,
+  showNames = true,
+  measureNumbers,
+  durations,
+  showLegend = true,
+  ariaLabel,
+}: NotationStaffProps) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const summaryId = useId();
+  const positions = useMemo(() => notes.map((_, index) => {
+    const priorMeasureBreaks = measureNumbers
+      ? measureNumbers
+        .slice(1, index + 1)
+        .filter((measure, breakIndex) => measure !== measureNumbers[breakIndex]).length
+      : 0;
+    return 96 + index * 52 + priorMeasureBreaks * 24;
+  }), [measureNumbers, notes]);
+  const width = Math.max(520, (positions.at(-1) ?? 96) + 72);
   const currentNote = notes[currentIndex];
   const scoreSummary = showNames
     ? `Written notes: ${notes.map(noteName).join(", ")}.`
@@ -98,30 +122,51 @@ export function NotationStaff({ notes, currentIndex, complete, showNames = true 
     ? `Symbol ${currentIndex + 1} of ${notes.length}: ${noteName(currentNote)} is highlighted.`
     : directionCue(notes, currentIndex, complete);
 
+  useEffect(() => {
+    const viewport = scrollRef.current;
+    if (!viewport || complete || currentIndex < 0) return;
+    const targetX = positions[currentIndex] ?? 0;
+    const nextLeft = Math.max(0, Math.min(viewport.scrollWidth - viewport.clientWidth, targetX - viewport.clientWidth * 0.42));
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    viewport.scrollTo({ left: nextLeft, behavior: reducedMotion ? "auto" : "smooth" });
+  }, [complete, currentIndex, positions]);
+
   return (
-    <div className="notation-reader">
-      <div className="notation-scroll">
-        <svg className="notation-score" width={width} height={STAFF_UNIT_HEIGHT} viewBox={`0 0 ${width} ${STAFF_UNIT_HEIGHT}`} role="img" aria-labelledby="notation-score-summary">
-          <title id="notation-score-summary">{scoreSummary}</title>
+    <div className="notation-reader" role={ariaLabel ? "group" : undefined} aria-label={ariaLabel}>
+      <div className="notation-scroll" ref={scrollRef} data-current-index={currentIndex}>
+        <svg className="notation-score" width={width} height={STAFF_UNIT_HEIGHT} viewBox={`0 0 ${width} ${STAFF_UNIT_HEIGHT}`} role="img" aria-labelledby={summaryId}>
+          <title id={summaryId}>{scoreSummary}</title>
           <g className="notation-staff" aria-hidden="true">
             {Object.entries(STAFF_LINE_Y).map(([name, y]) => <line key={name} x1="70" x2={width - 20} y1={y} y2={y} />)}
             <text className="notation-clef" x="20" y="126">𝄞</text>
           </g>
           {notes.map((note, index) => {
             const state = index < currentIndex || complete ? "read" : index === currentIndex ? "current" : "waiting";
-            const x = 96 + index * 52;
+            const x = positions[index];
             const y = staffYForMidi(note);
             const accidental = accidentalForMidi(note);
             const labelY = y > 138 ? y - 12 : y + 22;
+            const duration = durations?.[index] ?? 1;
+            const beginsMeasure = Boolean(measureNumbers && (index === 0 || measureNumbers[index] !== measureNumbers[index - 1]));
+            const stemUp = y >= STAFF_LINE_Y.B4;
             return (
               <g
                 key={`${note}-${index}`}
                 className={`notation-note ${state}`}
+                data-note-index={index}
                 aria-hidden="true"
               >
+                {beginsMeasure && <>
+                  <line className="notation-barline" x1={x - 27} x2={x - 27} y1={STAFF_LINE_Y.F5} y2={STAFF_LINE_Y.E4} />
+                  <text className="notation-measure-number" x={x - 22} y="42">{measureNumbers?.[index]}</text>
+                </>}
                 {ledgerLinesForMidi(note).map((ledgerY) => <line key={ledgerY} className="notation-ledger" x1={x - 15} x2={x + 15} y1={ledgerY} y2={ledgerY} />)}
                 {accidental && <text className="notation-accidental" x={x - 19} y={y + 4}>{accidental}</text>}
-                <ellipse className="notation-notehead" cx={x} cy={y} rx="9" ry="6" transform={`rotate(-16 ${x} ${y})`} />
+                {duration < 4 && <line className="notation-stem" x1={x + (stemUp ? 7 : -7)} x2={x + (stemUp ? 7 : -7)} y1={y} y2={y + (stemUp ? -31 : 31)} />}
+                {duration < 1 && <path className="notation-flag" d={stemUp
+                  ? `M ${x + 7} ${y - 31} q 14 8 5 20`
+                  : `M ${x - 7} ${y + 31} q -14 -8 -5 -20`} />}
+                <ellipse className={`notation-notehead ${duration >= 2 ? "open" : ""}`} cx={x} cy={y} rx="9" ry="6" transform={`rotate(-16 ${x} ${y})`} />
                 {showNames && <text className="notation-label" x={x} y={labelY}>{noteName(note)}</text>}
               </g>
             );
@@ -129,11 +174,11 @@ export function NotationStaff({ notes, currentIndex, complete, showNames = true 
         </svg>
       </div>
       <p className="sr-only" aria-live="polite">{currentCue}</p>
-      <div className="notation-key">
+      {showLegend && <div className="notation-key">
         <span><i className="notation-current" /> Read this note now</span>
         <span>Higher symbol = move right on the keyboard</span>
         <span>C4 = middle C</span>
-      </div>
+      </div>}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { analyzeProject, assembleProject, PROJECT_BRIEFS, PROJECT_TRANSFORMS, tr
 import { buildChord, buildDiatonicHarmony, buildScale, CHORD_QUALITIES, SCALE_MODES, THEORY_ROOTS } from "../app/theory-engine.mjs";
 import { getPersonalizedRepertoireTransfer, getRepertoireAnalysis, REPERTOIRE_ANALYSIS, repertoireAnalysisCount } from "../app/repertoire-analysis.mjs";
 import { ledgerLinesForMidi, staffYForMidi } from "../app/notation-geometry.mjs";
+import { getScorePracticeStep, ODE_TO_JOY_SCORE, scoreTimeAtPosition } from "../app/score-practice.mjs";
 
 async function render() {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -81,12 +82,47 @@ test("maps notation to one diatonic staff and draws only needed ledger lines", a
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
   assert.match(language, /<svg className="notation-score"[\s\S]*viewBox=\{`0 0 \$\{width\} \$\{STAFF_UNIT_HEIGHT\}`\}/);
-  assert.match(language, /<title id="notation-score-summary">\{scoreSummary\}<\/title>/);
+  assert.match(language, /<title id=\{summaryId\}>\{scoreSummary\}<\/title>/);
   assert.match(language, /<p className="sr-only" aria-live="polite">\{currentCue\}<\/p>/);
   assert.match(language, /showNames && !complete[\s\S]*noteName\(currentNote\)/);
   assert.match(language, /directionCue\(notes, currentIndex, complete\)/);
   assert.match(styles, /\.notation-score \{[^}]*height: 170px;[^}]*margin-inline: auto;[^}]*\}/);
   assert.doesNotMatch(styles, /\.notation-score \{[^}]*min-width:/);
+});
+
+test("auto-follows long repertoire notation and evaluates the same Ode melody shown on the staff", async () => {
+  assert.equal(ODE_TO_JOY_SCORE.length, 62);
+  assert.deepEqual([...new Set(ODE_TO_JOY_SCORE.map((position) => position.measure))], Array.from({ length: 17 }, (_, index) => index + 1));
+  assert.deepEqual(ODE_TO_JOY_SCORE.slice(0, 15).map((position) => position.midi), [64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 64, 62, 62]);
+  assert.deepEqual(getScorePracticeStep(ODE_TO_JOY_SCORE, 0, 62), {
+    accepted: false,
+    complete: false,
+    expectedMidi: 64,
+    nextIndex: 0,
+    completedMeasure: null,
+  });
+  assert.equal(getScorePracticeStep(ODE_TO_JOY_SCORE, 0, 64).nextIndex, 1);
+  assert.equal(getScorePracticeStep(ODE_TO_JOY_SCORE, 3, 67).completedMeasure, 1);
+  assert.equal(scoreTimeAtPosition(ODE_TO_JOY_SCORE, 4), 1);
+
+  const [curriculum, language, page, reader, styles] = await Promise.all([
+    readFile(new URL("../app/curriculum.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/music-language.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/score-reader.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(curriculum, /practiceSequence: ODE_TO_JOY_SCORE/);
+  assert.match(curriculum, /ode-complete[\s\S]*notation: \{ showNames: true \}/);
+  assert.match(language, /viewport\.scrollTo\(\{ left: nextLeft/);
+  assert.match(language, /data-current-index=\{currentIndex\}/);
+  assert.match(page, /course\.repertoire && sequenceNotes\.length >= 10/);
+  assert.match(page, /key=\{`\$\{course\.id\}:\$\{step\.id\}:\$\{activityRunning \? "guided" : "idle"\}`\}/);
+  assert.match(reader, /Start score practice/);
+  assert.match(reader, /getScorePracticeStep\(practiceSequence, practiceIndex, playedNote\.midi\)/);
+  assert.match(reader, /measureNumbers=\{practiceSequence\.map/);
+  assert.match(styles, /\.notation-scroll \{[^}]*scroll-behavior: smooth/);
+  assert.match(styles, /\.score-paper:has\(\.notation-reader\)/);
 });
 
 test("keeps a readable live keyboard visible throughout every lesson", async () => {
@@ -453,7 +489,7 @@ test("ships five complete local MusicXML score archives and an interactive reade
   ]);
 
   assert.match(reader, /OpenSheetMusicDisplay/);
-  assert.match(reader, /Follow my playing/);
+  assert.match(reader, /Start score practice/);
   assert.match(reader, /NotesUnderCursor/);
   assert.match(reader, /onMeasureComplete/);
   assert.match(reader, /CurrentSourceTimestamp\.RealValue/);

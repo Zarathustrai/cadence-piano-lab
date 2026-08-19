@@ -1022,8 +1022,8 @@ export default function Home() {
 
                 {step.kind === "sequence" && (
                   <div className="play-activity">
-                    {step.notation
-                      ? <NotationStaff notes={sequenceNotes} currentIndex={sequenceIndex} complete={stepComplete} showNames={step.notation.showNames} />
+                    {step.notation || (course.repertoire && sequenceNotes.length >= 10)
+                      ? <NotationStaff notes={sequenceNotes} currentIndex={sequenceIndex} complete={stepComplete} showNames={step.notation?.showNames ?? true} ariaLabel={`${step.title} interactive score`} />
                       : <div className="note-path" aria-label="Lesson note sequence">
                         {sequenceNotes.map((note, index) => <span key={`${note}-${index}`} className={index < sequenceIndex ? "done" : index === sequenceIndex ? "current" : ""}><small>{index + 1}</small><strong>{noteName(note)}</strong></span>)}
                       </div>}
@@ -1076,14 +1076,16 @@ export default function Home() {
 
               {course.repertoire && missingPrerequisites.length === 0 && (!reviewMode || reviewRevealed) && (
                 <ScoreReader
-                  key={course.id}
+                  key={`${course.id}:${step.id}:${activityRunning ? "guided" : "idle"}`}
                   title={course.title}
                   composer={course.repertoire.composer}
                   scoreUrl={course.repertoire.scoreUrl}
                   totalMeasures={course.repertoire.totalMeasures}
                   practiceBpm={course.repertoire.practiceBpm}
                   sections={course.repertoire.sections}
+                  practiceSequence={course.repertoire.practiceSequence}
                   playedNote={scorePlayedNote}
+                  lessonActivityRunning={activityRunning}
                   completedMeasures={scoreMeasures[course.id] ?? []}
                   onMeasureComplete={completeScoreMeasure}
                   onFeedback={setFeedback}
