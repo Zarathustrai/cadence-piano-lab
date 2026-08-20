@@ -1035,7 +1035,7 @@ export default function Home() {
                 {step.kind === "sequence" && (
                   <div className="play-activity">
                     {step.notation || (course.repertoire && sequenceNotes.length >= 10)
-                      ? <NotationStaff notes={sequenceNotes} currentIndex={sequenceIndex} complete={stepComplete} showNames={step.notation?.showNames ?? true} ariaLabel={`${step.title} interactive score`} />
+                      ? <NotationStaff notes={sequenceNotes} currentIndex={sequenceIndex} complete={stepComplete} showNames={step.notation?.showNames ?? true} spellings={step.notation?.spellings} ariaLabel={`${step.title} interactive score`} />
                       : <div className="note-path" aria-label="Lesson note sequence">
                         {sequenceNotes.map((note, index) => <span key={`${note}-${index}`} className={index < sequenceIndex ? "done" : index === sequenceIndex ? "current" : ""}><small>{index + 1}</small><strong>{noteName(note)}</strong></span>)}
                       </div>}

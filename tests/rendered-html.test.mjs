@@ -9,7 +9,7 @@ import { analyzeHarmonyProgression, buildPreset, chordsForKey, HARMONY_PRESETS, 
 import { analyzeProject, assembleProject, PROJECT_BRIEFS, PROJECT_TRANSFORMS, transformPerformance } from "../app/composition-project-engine.mjs";
 import { buildChord, buildDiatonicHarmony, buildScale, CHORD_QUALITIES, SCALE_MODES, THEORY_ROOTS } from "../app/theory-engine.mjs";
 import { getPersonalizedRepertoireTransfer, getRepertoireAnalysis, REPERTOIRE_ANALYSIS, repertoireAnalysisCount } from "../app/repertoire-analysis.mjs";
-import { ledgerLinesForMidi, staffYForMidi } from "../app/notation-geometry.mjs";
+import { ledgerLinesForMidi, ledgerLinesForSpelling, staffYForMidi, staffYForSpelling } from "../app/notation-geometry.mjs";
 import { getScorePracticeStep, ODE_TO_JOY_SCORE, scoreTimeAtPosition } from "../app/score-practice.mjs";
 
 async function render() {
@@ -86,6 +86,20 @@ test("adds a source-aware Libet's Delay study with a playable beginner reduction
   assert.match(styles, /\.course-resources/);
 });
 
+test("adds Rivers of Another Town as a source-aware E-major accompaniment study", async () => {
+  const curriculum = await readFile(new URL("../app/curriculum.ts", import.meta.url), "utf8");
+
+  assert.match(curriculum, /id: "rivers-another-town"/);
+  assert.match(curriculum, /No trustworthy public piano score surfaced/);
+  assert.match(curriculum, /I–iii–IVmaj7–iv–ii–I/);
+  assert.match(curriculum, /C-sharp falls to C natural/);
+  assert.match(curriculum, /rivers-accompaniment/);
+  assert.match(curriculum, /rivers-piano-pattern/);
+  assert.match(curriculum, /youtube\.com\/watch\?v=EpFvJ33Jq2E/);
+  assert.match(curriculum, /chordify\.net\/chords\/jonatan-leandoer96-songs\/rivers-of-another-town-chords/);
+  assert.match(curriculum, /beatport\.com\/track\/rivers-of-another-town\/17380990/);
+});
+
 test("maps notation to one diatonic staff and draws only needed ledger lines", async () => {
   assert.equal(staffYForMidi(77), 56, "F5 is the top staff line");
   assert.equal(staffYForMidi(74), 71, "D5 is the fourth staff line");
@@ -98,6 +112,10 @@ test("maps notation to one diatonic staff and draws only needed ledger lines", a
   assert.deepEqual(ledgerLinesForMidi(60), [131]);
   assert.deepEqual(ledgerLinesForMidi(55), [131, 146], "G3 uses C4 and A3 ledgers");
   assert.ok(!ledgerLinesForMidi(55).includes(153.5), "a ledger line never runs through G3");
+  assert.equal(staffYForSpelling("G♯4"), 101, "G-sharp is written on the G line");
+  assert.equal(staffYForSpelling("C♯5"), 78.5, "C-sharp is written in the C space");
+  assert.equal(staffYForSpelling("D♯5"), 71, "D-sharp is written on the D line");
+  assert.deepEqual(ledgerLinesForSpelling("G♯3"), [131, 146]);
 
   const [language, styles] = await Promise.all([
     readFile(new URL("../app/music-language.tsx", import.meta.url), "utf8"),
@@ -106,8 +124,9 @@ test("maps notation to one diatonic staff and draws only needed ledger lines", a
   assert.match(language, /<svg className="notation-score"[\s\S]*viewBox=\{`0 0 \$\{width\} \$\{STAFF_UNIT_HEIGHT\}`\}/);
   assert.match(language, /<title id=\{summaryId\}>\{scoreSummary\}<\/title>/);
   assert.match(language, /<p className="sr-only" aria-live="polite">\{currentCue\}<\/p>/);
-  assert.match(language, /showNames && !complete[\s\S]*noteName\(currentNote\)/);
-  assert.match(language, /directionCue\(notes, currentIndex, complete\)/);
+  assert.match(language, /showNames && !complete[\s\S]*writtenLabel\(notes, spellings, currentIndex\)/);
+  assert.match(language, /directionCue\(notes, spellings, currentIndex, complete\)/);
+  assert.match(language, /const spelling = spellings\?\.\[index\];[\s\S]*const y = spelling \? staffYForSpelling/);
   assert.match(styles, /\.notation-score \{[^}]*height: 170px;[^}]*margin-inline: auto;[^}]*\}/);
   assert.doesNotMatch(styles, /\.notation-score \{[^}]*min-width:/);
 });

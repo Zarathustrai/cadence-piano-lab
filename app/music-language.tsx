@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef } from "react";
 import type { LessonStep, MusicTerm } from "./curriculum";
-import { ledgerLinesForMidi, STAFF_LINE_Y, STAFF_UNIT_HEIGHT, staffYForMidi } from "./notation-geometry.mjs";
+import { ledgerLinesForMidi, ledgerLinesForSpelling, STAFF_LINE_Y, STAFF_UNIT_HEIGHT, staffYForMidi, staffYForSpelling } from "./notation-geometry.mjs";
 
 export const MUSIC_GLOSSARY: MusicTerm[] = [
   { term: "Note", plain: "One musical sound. On the page, it is shown by a small oval symbol." },
@@ -68,6 +68,7 @@ type NotationStaffProps = {
   currentIndex: number;
   complete: boolean;
   showNames?: boolean;
+  spellings?: string[];
   measureNumbers?: number[];
   durations?: number[];
   showLegend?: boolean;
@@ -84,11 +85,24 @@ function accidentalForMidi(midi: number) {
   return NOTE_NAMES[((midi % 12) + 12) % 12].slice(1);
 }
 
-function directionCue(notes: number[], currentIndex: number, complete: boolean) {
+function accidentalForSpelling(spelling: string) {
+  const accidental = spelling.match(/[♯♭#b]/)?.[0] ?? "";
+  return accidental === "#" ? "♯" : accidental === "b" ? "♭" : accidental;
+}
+
+function writtenLabel(notes: number[], spellings: string[] | undefined, index: number) {
+  return spellings?.[index] ?? noteName(notes[index]);
+}
+
+function writtenY(notes: number[], spellings: string[] | undefined, index: number) {
+  return spellings?.[index] ? staffYForSpelling(spellings[index]) : staffYForMidi(notes[index]);
+}
+
+function directionCue(notes: number[], spellings: string[] | undefined, currentIndex: number, complete: boolean) {
   if (complete) return `All ${notes.length} symbols have been read.`;
   if (currentIndex === 0) return `Symbol 1 of ${notes.length} is highlighted.`;
-  const previousY = staffYForMidi(notes[currentIndex - 1]);
-  const currentY = staffYForMidi(notes[currentIndex]);
+  const previousY = writtenY(notes, spellings, currentIndex - 1);
+  const currentY = writtenY(notes, spellings, currentIndex);
   const direction = currentY < previousY ? "higher" : currentY > previousY ? "lower" : "at the same height";
   return `Symbol ${currentIndex + 1} of ${notes.length} is highlighted. It is ${direction} than the previous symbol.`;
 }
@@ -98,6 +112,7 @@ export function NotationStaff({
   currentIndex,
   complete,
   showNames = true,
+  spellings,
   measureNumbers,
   durations,
   showLegend = true,
@@ -116,11 +131,11 @@ export function NotationStaff({
   const width = Math.max(520, (positions.at(-1) ?? 96) + 72);
   const currentNote = notes[currentIndex];
   const scoreSummary = showNames
-    ? `Written notes: ${notes.map(noteName).join(", ")}.`
+    ? `Written notes: ${notes.map((_, index) => writtenLabel(notes, spellings, index)).join(", ")}.`
     : `Written music exercise with ${notes.length} note symbols.`;
   const currentCue = showNames && !complete && currentNote !== undefined
-    ? `Symbol ${currentIndex + 1} of ${notes.length}: ${noteName(currentNote)} is highlighted.`
-    : directionCue(notes, currentIndex, complete);
+    ? `Symbol ${currentIndex + 1} of ${notes.length}: ${writtenLabel(notes, spellings, currentIndex)} is highlighted.`
+    : directionCue(notes, spellings, currentIndex, complete);
 
   useEffect(() => {
     const viewport = scrollRef.current;
@@ -143,8 +158,9 @@ export function NotationStaff({
           {notes.map((note, index) => {
             const state = index < currentIndex || complete ? "read" : index === currentIndex ? "current" : "waiting";
             const x = positions[index];
-            const y = staffYForMidi(note);
-            const accidental = accidentalForMidi(note);
+            const spelling = spellings?.[index];
+            const y = spelling ? staffYForSpelling(spelling) : staffYForMidi(note);
+            const accidental = spelling ? accidentalForSpelling(spelling) : accidentalForMidi(note);
             const labelY = y > 138 ? y - 12 : y + 22;
             const duration = durations?.[index] ?? 1;
             const beginsMeasure = Boolean(measureNumbers && (index === 0 || measureNumbers[index] !== measureNumbers[index - 1]));
@@ -160,14 +176,14 @@ export function NotationStaff({
                   <line className="notation-barline" x1={x - 27} x2={x - 27} y1={STAFF_LINE_Y.F5} y2={STAFF_LINE_Y.E4} />
                   <text className="notation-measure-number" x={x - 22} y="42">{measureNumbers?.[index]}</text>
                 </>}
-                {ledgerLinesForMidi(note).map((ledgerY) => <line key={ledgerY} className="notation-ledger" x1={x - 15} x2={x + 15} y1={ledgerY} y2={ledgerY} />)}
+                {(spelling ? ledgerLinesForSpelling(spelling) : ledgerLinesForMidi(note)).map((ledgerY) => <line key={ledgerY} className="notation-ledger" x1={x - 15} x2={x + 15} y1={ledgerY} y2={ledgerY} />)}
                 {accidental && <text className="notation-accidental" x={x - 19} y={y + 4}>{accidental}</text>}
                 {duration < 4 && <line className="notation-stem" x1={x + (stemUp ? 7 : -7)} x2={x + (stemUp ? 7 : -7)} y1={y} y2={y + (stemUp ? -31 : 31)} />}
                 {duration < 1 && <path className="notation-flag" d={stemUp
                   ? `M ${x + 7} ${y - 31} q 14 8 5 20`
                   : `M ${x - 7} ${y + 31} q -14 -8 -5 -20`} />}
                 <ellipse className={`notation-notehead ${duration >= 2 ? "open" : ""}`} cx={x} cy={y} rx="9" ry="6" transform={`rotate(-16 ${x} ${y})`} />
-                {showNames && <text className="notation-label" x={x} y={labelY}>{noteName(note)}</text>}
+                {showNames && <text className="notation-label" x={x} y={labelY}>{spelling ?? noteName(note)}</text>}
               </g>
             );
           })}

@@ -40,6 +40,7 @@ export type LessonStep = {
   terms?: MusicTerm[];
   notation?: {
     showNames?: boolean;
+    spellings?: string[];
   };
 };
 
@@ -576,7 +577,7 @@ export const COURSES: Course[] = [
           "The reduction will make more sense when every melody note and chord color belongs to one familiar tonal room.",
           "F-sharp is the black key between F and G. C-sharp is the black key immediately to the right of C.",
         ),
-        notation: { showNames: true },
+        notation: { showNames: true, spellings: ["D4", "E4", "F♯4", "G4", "A4", "B4", "C♯5", "D5"] },
         terms: [
           { term: "Sharp", plain: "The sign ♯ raises a named note by one nearest keyboard step." },
           { term: "Key", plain: "The family of notes and chords that makes one note feel like home. Here, D is home." },
@@ -600,7 +601,7 @@ export const COURSES: Course[] = [
           "This I–vi–ii–V circle is the harmonic engine beneath the richer dance-band voicings. Learning the jobs first makes later extensions easier to understand.",
           "Count groups of four. The last group, A C-sharp E G, should feel unfinished until D returns.",
         ),
-        notation: { showNames: true },
+        notation: { showNames: true, spellings: ["D3", "F♯3", "A3", "C♯4", "B3", "D4", "F♯4", "A4", "E3", "G3", "B3", "D4", "A3", "C♯4", "E4", "G4"] },
         terms: [
           { term: "I–vi–ii–V", plain: "Home, relative minor, preparation, and dominant return. The symbols name chord jobs inside the key." },
           { term: "Seventh chord", plain: "A triad with one extra note stacked above it, creating more color and smoother movement." },
@@ -615,7 +616,7 @@ export const COURSES: Course[] = [
           "A simple upper voice gives your ear something to remember while the harmony changes underneath it.",
           "Use only the right hand at first. Aim for connected sound and one gentle high point on G4.",
         ),
-        notation: { showNames: true },
+        notation: { showNames: true, spellings: ["F♯4", "E4", "D4", "F♯4", "F♯4", "E4", "D4", "C♯4", "E4", "F♯4", "G4", "F♯4", "E4", "C♯4", "D4", "D4"] },
       },
       quiz(
         "libet-transformation",
@@ -644,8 +645,138 @@ export const COURSES: Course[] = [
     ],
   },
   {
-    id: "improv",
+    id: "rivers-another-town",
     number: "15",
+    chapter: "Repertoire",
+    title: "Rivers of Another Town: the blue turn",
+    subtitle: "Accompany the song, then hear one borrowed note change the light",
+    duration: "4 sessions",
+    outcome: "You can play a beginner accompaniment reduction in E major, move through its principal chord colors, and explain why A major turning into A minor changes the emotional light.",
+    tags: ["Personal study", "E major", "Borrowed chord"],
+    prerequisites: ["scales", "triads", "inversions"],
+    resources: [
+      {
+        label: "Hear the official recording",
+        url: "https://www.youtube.com/watch?v=EpFvJ33Jq2E",
+        description: "Rivers of Another Town by jonatan leandoer96 and Frederik Valentin.",
+      },
+      {
+        label: "Follow the community chord map",
+        url: "https://chordify.net/chords/jonatan-leandoer96-songs/rivers-of-another-town-chords",
+        description: "An external timeline for comparing the E-major chord changes.",
+      },
+      {
+        label: "Check the release details",
+        url: "https://www.beatport.com/track/rivers-of-another-town/17380990",
+        description: "Release, key, tempo, and label information for the original mix.",
+      },
+    ],
+    steps: [
+      {
+        ...learn(
+          "rivers-source",
+          "Learn the accompaniment before chasing the vocal",
+          "Rivers of Another Town is a 2023 song by jonatan leandoer96 and Frederik Valentin, with writing and production contributions from Mathias Sarsgaard. No trustworthy public piano score surfaced, so Cadence teaches a beginner accompaniment reduction from the consistent E-major chord map. It preserves the harmonic jobs and piano feel without claiming to reproduce every recorded note.",
+          "The voice, strings, drums, and piano each carry a different layer. A clear accompaniment gives you the structure first, leaving room to study or sing the melody later without turning the piano into a crowded imitation of the whole recording.",
+          [[52, 56, 59], [56, 59, 63], [57, 61, 64, 68], [57, 60, 64]],
+          "Hear the first three colors belong to E major. The final A-minor color introduces C natural, which does not belong to the key.",
+        ),
+        terms: [
+          { term: "Accompaniment", plain: "The musical support under a melody or voice: harmony, bass, pulse, and texture." },
+          { term: "Borrowed chord", plain: "A chord taken from a closely related scale to create a temporary color outside the home key." },
+          { term: "Reduction", plain: "A simpler playable version that preserves the important musical roles while leaving out detail." },
+        ],
+      },
+      {
+        ...sequence(
+          "rivers-e-major",
+          "Map the four sharps of E major",
+          "Play E, F-sharp, G-sharp, A, B, C-sharp, D-sharp, E. Do not rush past the black keys. Name each sharp while you play it.",
+          [64, 66, 68, 69, 71, 73, 75, 76],
+          "The song's brighter chords come from this note family. Knowing the map makes the later C natural sound like an intentional shadow rather than a wrong key.",
+          "E major uses F-sharp, G-sharp, C-sharp, and D-sharp.",
+        ),
+        notation: { showNames: true, spellings: ["E4", "F♯4", "G♯4", "A4", "B4", "C♯5", "D♯5", "E5"] },
+        terms: [
+          { term: "E major", plain: "A key whose home note is E and whose scale contains four sharps." },
+          { term: "Accidental", plain: "A sign or altered note that changes the expected pitch, such as C natural inside E major." },
+        ],
+      },
+      chord(
+        "rivers-home",
+        "Build the clear home chord",
+        "Hold E3, G-sharp3, and B3. Play quietly enough that a singer could remain in front of you.",
+        [52, 56, 59],
+        "E major",
+        "E major is the tonic, or home. The accompaniment can move through richer colors because your ear keeps remembering this stable reference.",
+        "Find E3, then skip to G-sharp and B. Use a relaxed 1–3–5 hand shape.",
+      ),
+      {
+        ...sequence(
+          "rivers-color-change",
+          "Change one note and turn sunlight blue",
+          "Arpeggiate Amaj7 as A, C-sharp, E, G-sharp. Then play A minor as A, C, E, A. Listen to C-sharp fall one keyboard step to C natural.",
+          [57, 61, 64, 68, 57, 60, 64, 69],
+          "That one descending inner note changes IV into borrowed iv. The bass can stay on A while the harmony moves from open and luminous to wistful.",
+          "Keep A and E steady in your ear. Only C-sharp must fall to C natural for the essential color change.",
+        ),
+        notation: { showNames: true, spellings: ["A3", "C♯4", "E4", "G♯4", "A3", "C4", "E4", "A4"] },
+        terms: [
+          { term: "IV to iv", plain: "The major chord on scale step four changes to minor. In E major, A major becomes A minor." },
+          { term: "Inner voice", plain: "A note moving inside a chord, between the bass and the highest note." },
+        ],
+      },
+      {
+        ...sequence(
+          "rivers-accompaniment",
+          "Play the road away and back home",
+          "Play each harmony as a slow four-note arpeggio: E, G-sharp minor, Amaj7, A minor, F-sharp minor, then E. Practice near 72 BPM before approaching the recording's slow-feeling pulse around 80 BPM.",
+          [52, 56, 59, 64, 56, 59, 63, 68, 57, 61, 64, 68, 57, 60, 64, 69, 54, 57, 61, 66, 52, 56, 59, 64],
+          "The progression travels I–iii–IVmaj7–iv–ii–I. Its emotional force comes from smooth voice movement, especially the borrowed minor turn, rather than from many unrelated chords.",
+          "Pause after every four notes. Let the final E chord feel like arrival, not simply the next group.",
+        ),
+        notation: { showNames: true, spellings: ["E3", "G♯3", "B3", "E4", "G♯3", "B3", "D♯4", "G♯4", "A3", "C♯4", "E4", "G♯4", "A3", "C4", "E4", "A4", "F♯3", "A3", "C♯4", "F♯4", "E3", "G♯3", "B3", "E4"] },
+      },
+      {
+        ...sequence(
+          "rivers-piano-pattern",
+          "Keep the piano moving without crowding the voice",
+          "Use bass, upper note, chord tone, upper note. Keep the touch even and light. This Cadence pattern captures the accompaniment's role, not a copied note-for-note transcription of the record.",
+          [52, 59, 64, 59, 56, 63, 68, 63, 57, 64, 68, 64, 57, 64, 69, 64],
+          "A recurring pattern gives the song continuity while the voice and strings carry the long expressive arc.",
+          "Count four quiet pulses. Make the bass present but never heavier than the upper notes.",
+        ),
+        notation: { showNames: true, spellings: ["E3", "B3", "E4", "B3", "G♯3", "D♯4", "G♯4", "D♯4", "A3", "E4", "G♯4", "E4", "A3", "E4", "A4", "E4"] },
+      },
+      quiz(
+        "rivers-blue-turn",
+        "Why does A minor sound suddenly more vulnerable?",
+        "A major and A minor share two notes. Which event creates the essential change inside E major?",
+        [
+          { label: "C-sharp falls to C natural", correct: true },
+          { label: "The bass moves from A to E" },
+          { label: "Every note becomes lower" },
+        ],
+        "A and E remain. Lowering C-sharp to C natural changes the chord's third from major to minor and introduces a note outside E major. The ear hears continuity and disturbance at the same time.",
+        "This borrowed-major-to-minor gesture is a reusable songwriting tool: keep the chord root, move one inner voice, and let the emotional meaning change.",
+      ),
+      {
+        id: "rivers-performance",
+        kind: "compose",
+        eyebrow: "Perform and arrange",
+        title: "Leave a river of space around the melody",
+        body: "Record two passes of the accompaniment. First play the six-chord road steadily. Then repeat it with a quieter second half, a longer pause before A minor, and a simple high-note answer only after each chord settles.",
+        allowedNotes: [52, 54, 56, 57, 59, 60, 61, 63, 64, 66, 68, 69, 71, 73, 75, 76],
+        minNotes: 28,
+        prompt: "Where did restraint make the borrowed A-minor chord feel stronger?",
+        why: "The recording gains scale from arrangement: piano supplies motion, strings widen the horizon, and the vocal remains exposed. Your performance should preserve those roles instead of filling every silence.",
+        hint: "Keep the first pass clear. In the second, change dynamics and space before adding any new notes.",
+      },
+    ],
+  },
+  {
+    id: "improv",
+    number: "16",
     chapter: "Create",
     title: "Improvisation as conversation",
     subtitle: "Motif, space, variation, response",
@@ -662,7 +793,7 @@ export const COURSES: Course[] = [
   },
   {
     id: "composition",
-    number: "16",
+    number: "17",
     chapter: "Create",
     title: "Composition: from seed to form",
     subtitle: "Develop, harmonize, arrange, revise",
@@ -679,7 +810,7 @@ export const COURSES: Course[] = [
   },
   {
     id: "production",
-    number: "17",
+    number: "18",
     chapter: "Create",
     title: "From piano idea to production",
     subtitle: "Turn harmony and performance into arrangement choices",
