@@ -67,6 +67,11 @@ export type Course = {
   tags: string[];
   steps: LessonStep[];
   prerequisites?: string[];
+  resources?: {
+    label: string;
+    url: string;
+    description: string;
+  }[];
   repertoire?: {
     composer: string;
     edition: string;
@@ -520,8 +525,127 @@ export const COURSES: Course[] = [
     ],
   },
   {
-    id: "improv",
+    id: "libets-delay",
     number: "14",
+    chapter: "Repertoire",
+    title: "Libet's Delay: the memory beneath the loop",
+    subtitle: "Learn a clear piano reduction, then blur it on purpose",
+    duration: "4 sessions",
+    outcome: "You can play a beginner reduction of the harmony behind Libet's Delay, follow its upper voice on the staff, and explain how repetition and degraded texture change the meaning of the source recording.",
+    tags: ["Personal study", "D major", "Memory loop"],
+    prerequisites: ["scales", "triads", "inversions"],
+    resources: [
+      {
+        label: "Hear the Russ Morgan source",
+        url: "https://www.youtube.com/watch?v=nK2vJjpdYFE",
+        description: "Goodnight, My Beautiful, the recording sampled by The Caretaker.",
+      },
+      {
+        label: "Open a community piano score",
+        url: "https://global.piastudy.com/musicDetail/VbKfxa10",
+        description: "An external arrangement for comparison after you learn the reduction.",
+      },
+      {
+        label: "Explore the harmonic analysis",
+        url: "https://www.hooktheory.com/theorytab/view/russ-morgan/goodnight-my-beautiful",
+        description: "A community analysis of the source song's chords and melody.",
+      },
+    ],
+    steps: [
+      {
+        ...learn(
+          "libet-source",
+          "First separate the song from the memory of it",
+          "Libet's Delay is not a conventional solo-piano composition. The Caretaker reshapes Russ Morgan's recording of Goodnight, My Beautiful, so a clear ballroom phrase feels distant, repeated, and unstable. Cadence will teach a playable reduction of that musical skeleton, then ask you to change its texture deliberately. It is a study arrangement, not a claim of note-for-note archival accuracy.",
+          "Knowing what was transformed helps you hear composition and production as two connected layers: the underlying harmony carries the memory, while looping, filtering, reverb, and interruption change its emotional meaning.",
+          [[50, 54, 57, 61], [59, 62, 66, 69], [52, 55, 59, 62], [57, 61, 64, 67]],
+          "Hear four related colors leave D major and circle back toward it.",
+        ),
+        terms: [
+          { term: "Sample", plain: "A piece of an existing recording reused as material inside a new recording." },
+          { term: "Reduction", plain: "A simpler playable version that preserves the main musical jobs while leaving out some detail." },
+          { term: "Loop", plain: "A recorded passage repeated so its return becomes part of the composition." },
+        ],
+      },
+      {
+        ...sequence(
+          "libet-d-major",
+          "Find the D-major room",
+          "Begin on D4 and play one octave upward: D, E, F-sharp, G, A, B, C-sharp, D. The two black keys are not decoration; F-sharp and C-sharp are what keep this scale in D major.",
+          [62, 64, 66, 67, 69, 71, 73, 74],
+          "The reduction will make more sense when every melody note and chord color belongs to one familiar tonal room.",
+          "F-sharp is the black key between F and G. C-sharp is the black key immediately to the right of C.",
+        ),
+        notation: { showNames: true },
+        terms: [
+          { term: "Sharp", plain: "The sign ♯ raises a named note by one nearest keyboard step." },
+          { term: "Key", plain: "The family of notes and chords that makes one note feel like home. Here, D is home." },
+        ],
+      },
+      chord(
+        "libet-home-color",
+        "Build the first remembered color",
+        "Hold D3, F-sharp3, A3, and C-sharp4 together. This is D major with a major seventh added. Let the notes ring without striking them hard.",
+        [50, 54, 57, 61],
+        "D major 7",
+        "The plain D-major triad establishes home. C-sharp adds the suspended, late-night color that makes the harmony feel remembered rather than announced.",
+        "Start with D, F-sharp, and A. Add C-sharp above them only after the hand feels settled.",
+      ),
+      {
+        ...sequence(
+          "libet-harmony-loop",
+          "Walk through the four-chord memory loop",
+          "Play each chord as four separate notes: Dmaj7, Bm7, Em7, then A7. Pause briefly after every four notes. You are hearing home, a darker relative, gentle departure, then a chord that wants to return.",
+          [50, 54, 57, 61, 59, 62, 66, 69, 52, 55, 59, 62, 57, 61, 64, 67],
+          "This I–vi–ii–V circle is the harmonic engine beneath the richer dance-band voicings. Learning the jobs first makes later extensions easier to understand.",
+          "Count groups of four. The last group, A C-sharp E G, should feel unfinished until D returns.",
+        ),
+        notation: { showNames: true },
+        terms: [
+          { term: "I–vi–ii–V", plain: "Home, relative minor, preparation, and dominant return. The symbols name chord jobs inside the key." },
+          { term: "Seventh chord", plain: "A triad with one extra note stacked above it, creating more color and smoother movement." },
+        ],
+      },
+      {
+        ...sequence(
+          "libet-upper-voice",
+          "Let one fragile line float above the chords",
+          "Play this Cadence study line slowly and legato. It is a beginner reduction of the source's melodic behavior, not a copied full transcription. Keep repeated notes quiet and let each four-note group sound like a memory returning with one detail changed.",
+          [66, 64, 62, 66, 66, 64, 62, 61, 64, 66, 67, 66, 64, 61, 62, 62],
+          "A simple upper voice gives your ear something to remember while the harmony changes underneath it.",
+          "Use only the right hand at first. Aim for connected sound and one gentle high point on G4.",
+        ),
+        notation: { showNames: true },
+      },
+      quiz(
+        "libet-transformation",
+        "What makes the memory feel unstable?",
+        "The underlying phrase can be played clearly. Which change belongs mainly to The Caretaker's transformation rather than the original chord progression?",
+        [
+          { label: "Looping, filtering, reverberation, and interrupted continuity", correct: true },
+          { label: "Using the D-major scale" },
+          { label: "Putting a seventh above a triad" },
+        ],
+        "The scale and harmony belong to the musical material. The Caretaker changes how that material survives in time: repetitions arrive imperfectly, detail is obscured, and the room around the recording becomes part of the piece.",
+        "This distinction lets you learn the piano part clearly before using production choices to change its meaning.",
+      ),
+      {
+        id: "libet-memory-performance",
+        kind: "compose",
+        eyebrow: "Perform and transform",
+        title: "Play it once clearly, then let it decay",
+        body: "Record two passes with the D-major note family. First play the upper-voice study cleanly over the four-chord loop. Then repeat only fragments, leave longer gaps, soften the touch, and allow one phrase to stop before its expected ending.",
+        allowedNotes: [50, 52, 54, 55, 57, 59, 61, 62, 64, 66, 67, 69, 71, 73, 74],
+        minNotes: 24,
+        prompt: "Which musical detail remained recognizable after you removed continuity?",
+        why: "You are learning both the musical object and the compositional idea behind its transformation, which connects piano technique directly to sampling and production.",
+        hint: "Do not add random wrong notes. Change memory through repetition, silence, register, dynamics, and timing first.",
+      },
+    ],
+  },
+  {
+    id: "improv",
+    number: "15",
     chapter: "Create",
     title: "Improvisation as conversation",
     subtitle: "Motif, space, variation, response",
@@ -538,7 +662,7 @@ export const COURSES: Course[] = [
   },
   {
     id: "composition",
-    number: "15",
+    number: "16",
     chapter: "Create",
     title: "Composition: from seed to form",
     subtitle: "Develop, harmonize, arrange, revise",
@@ -555,7 +679,7 @@ export const COURSES: Course[] = [
   },
   {
     id: "production",
-    number: "16",
+    number: "17",
     chapter: "Create",
     title: "From piano idea to production",
     subtitle: "Turn harmony and performance into arrangement choices",

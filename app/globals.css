@@ -171,6 +171,14 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .edition-note { background: var(--primary-soft); border-radius: 12px; margin: 25px 7px 0; padding: 15px; }
 .edition-note strong { display: block; font-size: 11px; line-height: 1.45; margin: 8px 0; }
 .edition-note span { color: var(--primary); font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.course-resources { border-top: 1px solid var(--line-strong); margin: 25px 7px 0; padding-top: 17px; }
+.course-resources > p { margin: 0 0 8px; }
+.course-resources a { align-items: start; border-top: 1px solid var(--line); color: var(--ink); display: grid; gap: 3px 8px; grid-template-columns: 1fr auto; min-height: 62px; padding: 11px 2px; text-decoration: none; }
+.course-resources a:hover strong { color: var(--primary); }
+.course-resources a:focus-visible { border-radius: 7px; outline: 3px solid oklch(0.75 0.1 252); outline-offset: 2px; }
+.course-resources strong { font-size: 11px; line-height: 1.35; }
+.course-resources span { color: var(--muted); font-size: 9px; grid-column: 1; line-height: 1.45; }
+.course-resources i { color: var(--primary); font-style: normal; grid-column: 2; grid-row: 1 / span 2; }
 .studio-main { min-width: 0; }
 .studio-toolbar { align-items: center; background: var(--surface); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; min-height: 66px; padding: 10px 32px; position: sticky; top: 64px; z-index: 50; }
 .connection-state { align-items: center; display: flex; gap: 12px; }
@@ -1016,6 +1024,9 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   .step-list { flex-direction: row; overflow-x: auto; }
   .step-list button { flex: 0 0 210px; }
   .edition-note { display: none; }
+  .course-resources { display: flex; gap: 8px; margin: 14px 0 0; overflow-x: auto; padding-top: 12px; }
+  .course-resources > p { flex: 0 0 88px; padding: 12px 0 0; }
+  .course-resources a { border: 1px solid var(--line); border-radius: 10px; flex: 0 0 230px; padding: 10px; }
   .studio-toolbar { top: 103px; }
   .practice-dock { top: 169px; padding-left: 20px; padding-right: 20px; }
   .practice-dock-heading { grid-template-columns: minmax(0, 1fr) auto; }

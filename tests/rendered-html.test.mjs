@@ -64,6 +64,28 @@ test("teaches notation and translates vocabulary before Beethoven", async () => 
   assert.match(language, /Higher symbol = move right on the keyboard/);
 });
 
+test("adds a source-aware Libet's Delay study with a playable beginner reduction", async () => {
+  const [curriculum, page, styles] = await Promise.all([
+    readFile(new URL("../app/curriculum.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(curriculum, /id: "libets-delay"/);
+  assert.match(curriculum, /Goodnight, My Beautiful/);
+  assert.match(curriculum, /study arrangement, not a claim of note-for-note archival accuracy/i);
+  assert.match(curriculum, /D major 7/);
+  assert.match(curriculum, /I–vi–ii–V/);
+  assert.match(curriculum, /libet-harmony-loop/);
+  assert.match(curriculum, /libet-upper-voice/);
+  assert.match(curriculum, /youtube\.com\/watch\?v=nK2vJjpdYFE/);
+  assert.match(curriculum, /global\.piastudy\.com\/musicDetail\/VbKfxa10/);
+  assert.match(page, /course\.resources/);
+  assert.match(page, /Lesson references/);
+  assert.match(page, /target="_blank" rel="noreferrer"/);
+  assert.match(styles, /\.course-resources/);
+});
+
 test("maps notation to one diatonic staff and draws only needed ledger lines", async () => {
   assert.equal(staffYForMidi(77), 56, "F5 is the top staff line");
   assert.equal(staffYForMidi(74), 71, "D5 is the fourth staff line");

@@ -928,6 +928,18 @@ export default function Home() {
                 <span>{course.repertoire.sections.length} sections · complete path</span>
               </div>
             )}
+            {course.resources?.length ? (
+              <div className="course-resources" aria-label="Lesson references">
+                <p className="eyebrow">Listen and compare</p>
+                {course.resources.map((resource) => (
+                  <a key={resource.url} href={resource.url} target="_blank" rel="noreferrer">
+                    <strong>{resource.label}</strong>
+                    <span>{resource.description}</span>
+                    <i aria-hidden="true">↗</i>
+                  </a>
+                ))}
+              </div>
+            ) : null}
           </aside>
 
           <section className="studio-main">
