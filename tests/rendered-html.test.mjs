@@ -166,7 +166,7 @@ test("auto-follows long repertoire notation and evaluates the same Ode melody sh
   assert.match(styles, /\.score-paper:has\(\.notation-reader\)/);
 });
 
-test("keeps a readable live keyboard visible throughout every lesson", async () => {
+test("keeps a readable live keyboard by default and offers a reversible score focus", async () => {
   const [page, styles] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
@@ -182,6 +182,15 @@ test("keeps a readable live keyboard visible throughout every lesson", async () 
   assert.match(styles, /\.practice-dock \{[^}]*position: sticky;[^}]*top: 130px;/);
   assert.match(styles, /\.live-key-readout strong \{[^}]*font-size: 30px;/);
   assert.match(styles, /\.lesson-body \{[^}]*font-size: 19px;/);
+  assert.match(page, /const \[scoreFocusMode, setScoreFocusMode\] = useState\(false\)/);
+  assert.match(page, /scoreFocusMode \? "score-focus" : ""/);
+  assert.match(page, /scoreFocusMode \? "Exit score focus" : "Focus score"/);
+  assert.match(page, /event\.key === "Escape"/);
+  assert.match(page, /!scoreFocusMode && <aside className="lesson-rail">/);
+  assert.match(page, /!scoreFocusMode && <section className="practice-dock"/);
+  assert.match(styles, /\.studio-layout\.score-focus \{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(styles, /\.score-focus \.lesson-stage \{[^}]*max-width: 1480px/);
+  assert.match(styles, /\.score-focus \.score-paper \{[^}]*height: 72vh;[^}]*min-height: 560px/);
 });
 
 test("keeps the AI boundary isolated and local persistence explicit", async () => {

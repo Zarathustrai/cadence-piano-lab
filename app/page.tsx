@@ -147,6 +147,7 @@ export default function Home() {
   const [midiStatus, setMidiStatus] = useState<MidiStatus>("idle");
   const [browserSound, setBrowserSound] = useState(true);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
+  const [scoreFocusMode, setScoreFocusMode] = useState(false);
 
   const [activityRunning, setActivityRunning] = useState(false);
   const [sequenceIndex, setSequenceIndex] = useState(0);
@@ -328,6 +329,15 @@ export default function Home() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [view]);
+
+  useEffect(() => {
+    if (!scoreFocusMode) return;
+    const exitFocus = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setScoreFocusMode(false);
+    };
+    window.addEventListener("keydown", exitFocus);
+    return () => window.removeEventListener("keydown", exitFocus);
+  }, [scoreFocusMode]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -619,6 +629,7 @@ export default function Home() {
   const openCourse = (courseId: string, requestedStep = 0) => {
     setSelectedCourseId(courseId);
     setStepIndex(requestedStep);
+    setScoreFocusMode(false);
     setView("studio");
   };
 
@@ -901,8 +912,8 @@ export default function Home() {
       )}
 
       {view === "studio" && (
-        <div className="studio-layout">
-          <aside className="lesson-rail">
+        <div className={`studio-layout ${scoreFocusMode ? "score-focus" : ""}`}>
+          {!scoreFocusMode && <aside className="lesson-rail">
             <button className="rail-back" onClick={() => setView("curriculum")}>← Curriculum</button>
             <div className="rail-course">
               <p>{course.chapter} · Course {course.number}</p>
@@ -940,7 +951,7 @@ export default function Home() {
                 ))}
               </div>
             ) : null}
-          </aside>
+          </aside>}
 
           <section className="studio-main">
             <div className="studio-toolbar">
@@ -949,6 +960,16 @@ export default function Home() {
                 <div><strong>{midiStatus === "connected" ? deviceName : "Screen keyboard ready"}</strong><small>{midiStatus === "connected" ? "Live MIDI is being heard" : "Connect MIDI when you want full-keyboard input"}</small></div>
               </div>
               <div className="toolbar-actions">
+                {course.repertoire && missingPrerequisites.length === 0 && (
+                  <button
+                    className={`quiet-button ${scoreFocusMode ? "selected" : ""}`}
+                    aria-pressed={scoreFocusMode}
+                    title={scoreFocusMode ? "Show the lesson sidebar and practice keyboard" : "Hide the lesson sidebar and practice keyboard to enlarge the score"}
+                    onClick={() => setScoreFocusMode((value) => !value)}
+                  >
+                    {scoreFocusMode ? "Exit score focus" : "Focus score"}
+                  </button>
+                )}
                 {devices.length > 1 && <select aria-label="MIDI input" value={deviceId} onChange={(event) => attachMidiInput(devices.find((item) => item.id === event.target.value))}>{devices.map((device) => <option key={device.id} value={device.id}>{device.name ?? "MIDI input"}</option>)}</select>}
                 <button className={`quiet-button ${glossaryOpen ? "selected" : ""}`} aria-expanded={glossaryOpen} onClick={() => setGlossaryOpen((value) => !value)}>Music words</button>
                 <button className="quiet-button" onClick={() => setBrowserSound((value) => !value)}>{browserSound ? "Sound on" : "Sound off"}</button>
@@ -958,7 +979,7 @@ export default function Home() {
 
             {glossaryOpen && <FullGlossary onClose={() => setGlossaryOpen(false)} />}
 
-            <section className="practice-dock" aria-label="Always visible practice keyboard">
+            {!scoreFocusMode && <section className="practice-dock" aria-label="Practice keyboard">
               <div className="practice-dock-heading">
                 <div className="live-key-readout" aria-live="polite">
                   <p className="eyebrow">Current key</p>
@@ -972,7 +993,7 @@ export default function Home() {
               </div>
               <PianoKeyboard whiteNotes={whiteNotes} blackNotes={blackNotes} activeNotes={activeNotes} targetNotes={pianoTargetNotes} onNoteOn={handleNoteOn} onNoteOff={handleNoteOff} />
               <p className="keyboard-help">Play your MIDI keyboard, tap the piano, or use A W S E D F T G Y H U J K.</p>
-            </section>
+            </section>}
 
             <div className="lesson-stage">
               {missingPrerequisites.length > 0 && (
