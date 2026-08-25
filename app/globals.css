@@ -324,6 +324,9 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .score-sections button div { display: flex; flex-direction: column; gap: 3px; }
 .score-sections button strong { font-size: 14px; }
 .score-sections button small { color: var(--muted); font-size: 11px; }
+.score-guided-cue { align-items: center; background: var(--primary-soft); border: 1px solid oklch(0.8 0.055 252); border-radius: 11px; display: flex; gap: 18px; justify-content: space-between; margin: 0 0 14px; padding: 13px 15px; }
+.score-guided-cue strong { font-size: 14px; line-height: 1.4; }
+.score-guided-cue span { color: var(--muted); font-size: 12px; line-height: 1.55; max-width: 64ch; }
 .score-context { background: oklch(0.94 0.014 82); border: 1px solid var(--line); border-radius: 11px 11px 0 0; display: grid; grid-template-columns: .8fr .55fr 1.25fr 1.25fr; }
 .score-context > div { border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; min-height: 60px; padding: 11px 14px; }
 .score-context > div:first-child { border-left: 0; }
@@ -970,6 +973,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   .chord-activity > .primary-button { grid-column: 1 / -1; justify-self: start; }
   .recording-line { grid-template-columns: 1fr repeat(3, 78px); }
   .score-context { grid-template-columns: 1fr 1fr; }
+  .score-guided-cue { align-items: flex-start; flex-direction: column; gap: 6px; }
   .score-context > div:nth-child(3) { border-left: 0; border-top: 1px solid var(--line); }
   .score-context > div:nth-child(4) { border-top: 1px solid var(--line); }
   .score-transport { grid-template-columns: auto 1fr auto; }

@@ -544,6 +544,31 @@ test("ships five complete local MusicXML score archives and an interactive reade
   }
 });
 
+test("turns Chopin's complete prelude into six guided score sections", async () => {
+  const [curriculum, reader, page, styles] = await Promise.all([
+    readFile(new URL("../app/curriculum.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/score-reader.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(curriculum, /Full 26-measure score/);
+  assert.match(curriculum, /Yes, this is the complete prelude/);
+  assert.match(curriculum, /chopin-opening[\s\S]*scoreSection: 0/);
+  assert.match(curriculum, /chopin-inner[\s\S]*scoreSection: 1/);
+  assert.match(curriculum, /chopin-first-cadence[\s\S]*scoreSection: 2/);
+  assert.match(curriculum, /chopin-climax[\s\S]*scoreSection: 3/);
+  assert.match(curriculum, /chopin-return[\s\S]*scoreSection: 4/);
+  assert.match(curriculum, /chopin-coda[\s\S]*scoreSection: 5/);
+  assert.match(curriculum, /chopin-complete-performance/);
+  assert.match(reader, /guidedSectionIndex\?: number/);
+  assert.match(reader, /startingMeasure = sections\[initialSectionIndex\]/);
+  assert.match(reader, /for \(let measure = 1; measure < startingMeasure; measure \+= 1\) osmd\.cursor\.nextMeasure\(\)/);
+  assert.match(reader, /Upper staff alone[\s\S]*Lower staff alone[\s\S]*Both hands at 36 BPM/);
+  assert.match(page, /guidedSectionIndex=\{step\.scoreSection\}/);
+  assert.match(styles, /\.score-guided-cue/);
+});
+
 test("maps every complete repertoire section to causal theory and personalized transfer", () => {
   assert.deepEqual(Object.keys(REPERTOIRE_ANALYSIS), ["ode", "bach", "minuet", "satie", "chopin"]);
   assert.deepEqual(Object.values(REPERTOIRE_ANALYSIS).map((sections) => sections.length), [4, 5, 4, 6, 6]);

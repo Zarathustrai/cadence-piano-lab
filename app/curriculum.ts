@@ -42,6 +42,7 @@ export type LessonStep = {
     showNames?: boolean;
     spellings?: string[];
   };
+  scoreSection?: number;
 };
 
 export type ScoreSection = {
@@ -497,10 +498,10 @@ export const COURSES: Course[] = [
     number: "13",
     chapter: "Repertoire",
     title: "Chopin: Prelude in E minor",
-    subtitle: "Expression through inner motion",
-    duration: "10 sessions",
-    outcome: "You can study the complete prelude, trace its chromatic voice leading, and shape a long phrase over changing harmony.",
-    tags: ["Complete work path", "Chromatic harmony", "Expression"],
+    subtitle: "Learn the complete work, four measures at a time",
+    duration: "18 sessions",
+    outcome: "You can learn and perform the complete prelude, section by section, while tracing its chromatic voice leading and shaping one long emotional arc.",
+    tags: ["Full 26-measure score", "Chromatic harmony", "Hands separately"],
     repertoire: {
       composer: "Frédéric Chopin",
       edition: "Op. 28 No. 4 complete guided study",
@@ -518,11 +519,119 @@ export const COURSES: Course[] = [
       ],
     },
     steps: [
-      learn("chopin-inner", "The melody barely moves, the harmony aches", "The upper melody is restrained. Much of the emotional motion comes from inner chord tones descending by semitone while common tones remain. Listen horizontally inside each chord.", "Voice leading explains expression more precisely than calling a chord simply sad.", [[52,55,59], [51,54,59], [50,53,59]], "Follow one middle note through several harmonies instead of hearing only vertical blocks."),
-      chord("eminor", "Establish E minor", "Hold E3, G3, and B3.", [52,55,59], "E minor", "The tonic is present but deliberately weighted and unsettled by what follows."),
-      sequence("chromatic-line", "Trace the inner descent", "Play G, F♯, F, E, D♯, D slowly while holding B above if comfortable.", [55,54,53,52,51,50], "Semitone motion creates continuity across complex chord labels."),
+      {
+        ...learn(
+          "chopin-whole-work",
+          "Yes, this is the complete prelude",
+          "The score below contains the entire Op. 28 No. 4: a short opening pickup followed by the full numbered piece, shown as 26 screen measures. You will learn it in six sections. For each section, first read the upper staff with the right hand, then the lower staff with the left hand, then combine them slowly, and only then start MIDI score following.",
+          "A complete score is not the same as a complete lesson. Breaking the work into small musical spans lets you learn every measure without losing the long feeling that made you care about it.",
+          [[59, 71], [52, 55, 59, 64]],
+          "The opening is already the whole piece in miniature: a lonely B, then harmony moving underneath a restrained upper line.",
+        ),
+        scoreSection: 0,
+        terms: [
+          { term: "Pickup", plain: "A short beginning before the first full numbered measure." },
+          { term: "Upper staff", plain: "The higher line of notation, normally played by the right hand here." },
+          { term: "Lower staff", plain: "The lower line of notation, normally played by the left hand here." },
+        ],
+      },
+      {
+        ...learn(
+          "chopin-opening",
+          "Measures 1 to 4: let the melody arrive late",
+          "Open the guided score below at Opening suspension. Pass 1: play only the upper staff and count slowly. Pass 2: play only the lower repeated chords, keeping them quiet and connected. Pass 3: combine both hands at 36 BPM. Pass 4: press Start score practice and let the blue cursor listen to every written note.",
+          "The melody feels exposed because it waits above repeated harmony. Do not make every chord equally heavy; the upper line must remain the person speaking.",
+          [[55, 59, 64], [54, 59, 63], [53, 59, 62]],
+          "Hear the middle notes descend while B remains in your ear.",
+        ),
+        scoreSection: 0,
+        terms: [
+          { term: "Suspension", plain: "A note held or delayed so the harmony feels unresolved for a moment." },
+          { term: "Voicing", plain: "Choosing which note sounds in front and which notes remain in the background." },
+        ],
+      },
+      { ...chord("eminor", "Build the sound beneath the opening", "Hold E3, G3, and B3. Play B3 slightly more clearly than E3 and G3, then repeat the chord without getting louder.", [52,55,59], "E minor", "E minor is home, but Chopin makes home feel weighted rather than comfortable."), scoreSection: 0 },
+      {
+        ...learn(
+          "chopin-inner",
+          "Measures 5 to 8: the harmony aches inside",
+          "Choose Inner descent below. Keep one finger or one note in your attention while the surrounding chord changes. Practice the right hand alone, the left hand alone, both hands at 36 BPM, then use score following. Stop if your wrist becomes rigid.",
+          "The upper melody barely moves. Much of the emotional motion comes from inner chord tones descending by the nearest keyboard step while other notes remain.",
+          [[52,55,59], [51,54,59], [50,53,59]],
+          "Listen horizontally inside each chord instead of hearing only separate vertical blocks.",
+        ),
+        scoreSection: 1,
+        terms: [
+          { term: "Inner voice", plain: "A moving musical line heard between the lowest and highest notes." },
+          { term: "Semitone", plain: "The smallest keyboard distance, from any key to its nearest neighboring key." },
+        ],
+      },
+      {
+        ...sequence("chromatic-line", "Trace the hidden descent", "Play G3, F-sharp3, F3, E3, D-sharp3, D3. Use one finger if needed and listen to the unbroken downward pull.", [55,54,53,52,51,50], "This small-step motion creates continuity across harmonies that look complicated on paper."),
+        notation: { showNames: true, spellings: ["G3", "F♯3", "F3", "E3", "D♯3", "D3"] },
+        scoreSection: 1,
+      },
+      {
+        ...learn(
+          "chopin-first-cadence",
+          "Measures 9 to 12: approach the ending, then refuse it",
+          "Choose First cadence below. Learn each hand alone first. When you combine them, aim toward the tense chord without speeding up. Use the MIDI follower only after you can reach every shape without grabbing.",
+          "A cadence is an ending gesture. Chopin lets you feel an ending approaching, then weakens or delays the arrival so the music must continue.",
+          [[59,63,66,69], [52,55,59,64]],
+          "Notice the difference between harmonic tension and physical tension. The sound may tighten while your wrist stays loose.",
+        ),
+        scoreSection: 2,
+        terms: [
+          { term: "Cadence", plain: "A harmonic gesture that creates a pause or ending." },
+          { term: "Evasion", plain: "The music approaches an expected ending, then turns elsewhere instead of settling fully." },
+        ],
+      },
+      { ...chord("chopin-dominant", "Feel the chord that wants to return", "Hold B3, D-sharp4, F-sharp4, and A4. Keep the hand rounded and release immediately if the stretch feels forced.", [59,63,66,69], "B dominant 7", "This chord contains the pull toward E minor. D-sharp wants to rise to E, while A wants to fall to G."), scoreSection: 2 },
+      {
+        ...learn(
+          "chopin-climax",
+          "Measures 13 to 16: grow through weight, not speed",
+          "Choose Climactic expansion below. Mark the loudest destination before playing. Practice each hand at 36 BPM, combine at 40 BPM, then use score following. Increase sound by transferring relaxed arm weight into the key, not by striking from stiff fingers.",
+          "The climax feels inevitable because the harmony and register intensify together. Tempo can remain broad while the emotional pressure rises.",
+          [[52,55,59], [54,57,63], [55,59,64]],
+          "Hear one long increase across several measures, not a separate accent on every chord.",
+        ),
+        scoreSection: 3,
+        terms: [
+          { term: "Climax", plain: "The point of greatest intensity in a musical span." },
+          { term: "Arm weight", plain: "Using the relaxed weight of the arm through the fingertips instead of forcing sound with stiff fingers." },
+        ],
+      },
+      {
+        ...learn(
+          "chopin-return",
+          "Measures 17 to 21: return home without feeling safe",
+          "Choose Final return below. Play the upper staff like a tired voice that still needs to finish speaking. Keep the left-hand chords quieter as the section continues. Combine only after each hand can move without hesitation.",
+          "The return to familiar harmony matters because you remember what happened earlier. It is not a reset; the same material now carries accumulated weight.",
+          [[52,55,59], [51,55,59], [52,55,59]],
+          "Let the sound recede while the line remains present.",
+        ),
+        scoreSection: 4,
+        terms: [{ term: "Return", plain: "Earlier musical material comes back after being changed by what happened in between." }],
+      },
+      {
+        ...learn(
+          "chopin-coda",
+          "Measures 22 to 26: let the final chord become silence",
+          "Choose Coda below. Practice the final measures without pedal first so you can hear every release. Add pedal only when the harmony is clean. After the last chord, keep your hands still and count four slow beats before moving.",
+          "A final chord is not the entire ending. The release, resonance, and silence complete the emotional sentence.",
+          [[59,63,66,69], [52,55,59,64]],
+          "Listen until the piano stops giving you sound. Do not rush to escape the ending.",
+        ),
+        scoreSection: 5,
+        terms: [
+          { term: "Coda", plain: "The final passage that closes the piece." },
+          { term: "Resonance", plain: "Sound that continues after the keys are played, especially with the pedal." },
+        ],
+      },
       quiz("chopin-expression", "Where is the expressive motion?", "What deserves special attention in this prelude?", [{ label: "The descending inner voices", correct: true }, { label: "Fast scales" }, { label: "A constantly changing tempo" }], "Chopin sustains a spare melody while harmony changes beneath it. Inner voices carry much of the tension.", "This is a reusable arranging technique: keep a focal line simple while the surrounding color evolves."),
-      { id: "chopin-compose", kind: "compose", eyebrow: "Create", title: "Compose with one note held", body: "Hold B as a top note. Under it, create four slowly changing two-note shapes, moving at least one inner note by semitone each time.", allowedNotes: [47,48,49,50,51,52,53,54,55,57,59], minNotes: 12, prompt: "Which change felt inevitable, and which felt surprising?", why: "You are composing through parsimonious voice leading, the principle at the heart of the prelude." },
+      { id: "chopin-complete-performance", kind: "compose", eyebrow: "Perform the complete work", title: "Join all six sections without breaking the spell", body: "Set score practice to 36 BPM and turn Loop section off. Play from the opening pickup through the final chord. If one note fails, recover at the next score position instead of restarting. When the piece is stable, raise the tempo by only two or three BPM.", allowedNotes: [47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71], minNotes: 40, prompt: "Where did the entire prelude feel like one thought rather than six practiced sections?", why: "Completion means preserving continuity and emotional direction across the whole score, not merely surviving each chord.", hint: "A slow complete performance is more musical than a fast performance broken by restarts.", scoreSection: 0 },
+      { id: "chopin-compose", kind: "compose", eyebrow: "Create from Chopin's mechanism", title: "Compose with one note held", body: "Hold B as a top note. Under it, create four slowly changing two-note shapes, moving at least one inner note by semitone each time.", allowedNotes: [47,48,49,50,51,52,53,54,55,57,59], minNotes: 12, prompt: "Which change felt inevitable, and which felt surprising?", why: "You are composing through economical voice leading, the principle at the heart of the prelude." },
     ],
   },
   {

@@ -30,6 +30,7 @@ type ScoreReaderProps = {
   practiceBpm: number;
   sections: ScoreSection[];
   practiceSequence?: ScorePosition[];
+  guidedSectionIndex?: number;
   playedNote: PlayedNoteEvent;
   lessonActivityRunning?: boolean;
   completedMeasures: number[];
@@ -70,6 +71,7 @@ export function ScoreReader({
   practiceBpm,
   sections,
   practiceSequence,
+  guidedSectionIndex,
   playedNote,
   lessonActivityRunning = false,
   completedMeasures,
@@ -85,12 +87,16 @@ export function ScoreReader({
   const lastProcessedTokenRef = useRef(0);
   const activeSectionRef = useRef(0);
   const sessionRef = useRef<SessionCapture>(emptySession());
-  const initialScorePosition = practiceSequence?.[0];
+  const initialSectionIndex = Math.min(Math.max(guidedSectionIndex ?? 0, 0), Math.max(0, sections.length - 1));
+  const startingMeasure = sections[initialSectionIndex]?.measures[0] ?? 1;
+  const requestedPracticeIndex = practiceSequence?.findIndex((position) => position.measure >= startingMeasure) ?? 0;
+  const initialPracticeIndex = Math.max(0, requestedPracticeIndex);
+  const initialScorePosition = practiceSequence?.[initialPracticeIndex];
   const [status, setStatus] = useState<"loading" | "ready" | "error">(initialScorePosition ? "ready" : "loading");
-  const [currentMeasure, setCurrentMeasure] = useState(initialScorePosition?.measure ?? 1);
-  const [activeSection, setActiveSection] = useState(0);
+  const [currentMeasure, setCurrentMeasure] = useState(initialScorePosition?.measure ?? startingMeasure);
+  const [activeSection, setActiveSection] = useState(initialSectionIndex);
   const [following, setFollowing] = useState(false);
-  const [practiceIndex, setPracticeIndex] = useState(0);
+  const [practiceIndex, setPracticeIndex] = useState(initialPracticeIndex);
   const [practiceComplete, setPracticeComplete] = useState(false);
   const [loopSection, setLoopSection] = useState(true);
   const [expectedNotes, setExpectedNotes] = useState<number[]>(initialScorePosition ? [initialScorePosition.midi] : []);
@@ -214,9 +220,13 @@ export function ScoreReader({
         osmd.render();
         osmd.cursor.hide();
         osmdRef.current = osmd;
+        osmd.cursor.reset();
+        for (let measure = 1; measure < startingMeasure; measure += 1) osmd.cursor.nextMeasure();
         setStatus("ready");
-        setCurrentMeasure(1);
-        onSectionChange?.(0);
+        activeSectionRef.current = initialSectionIndex;
+        setActiveSection(initialSectionIndex);
+        setCurrentMeasure(startingMeasure);
+        onSectionChange?.(initialSectionIndex);
         setExpectedNotes(
           [...new Set(
             osmd.cursor
@@ -235,7 +245,7 @@ export function ScoreReader({
       osmdRef.current?.cursor.Dispose();
       osmdRef.current = null;
     };
-  }, [onSectionChange, practiceSequence, scoreUrl]);
+  }, [initialSectionIndex, onSectionChange, practiceSequence, scoreUrl, startingMeasure]);
 
   useEffect(() => {
     if (explicitScore || !playedNote || !following || status !== "ready") return;
@@ -438,6 +448,13 @@ export function ScoreReader({
           );
         })}
       </div>
+
+      {guidedSectionIndex !== undefined && (
+        <div className="score-guided-cue" role="note">
+          <strong>Today, begin with {sections[initialSectionIndex]?.title}</strong>
+          <span>1. Upper staff alone. 2. Lower staff alone. 3. Both hands at 36 BPM. 4. Start score practice.</span>
+        </div>
+      )}
 
       <div className="score-context">
         <div><span>Current section</span><strong>{section.title}</strong></div>

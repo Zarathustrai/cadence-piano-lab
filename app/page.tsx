@@ -1096,6 +1096,7 @@ export default function Home() {
                   practiceBpm={course.repertoire.practiceBpm}
                   sections={course.repertoire.sections}
                   practiceSequence={course.repertoire.practiceSequence}
+                  guidedSectionIndex={step.scoreSection}
                   playedNote={scorePlayedNote}
                   lessonActivityRunning={activityRunning}
                   completedMeasures={scoreMeasures[course.id] ?? []}
