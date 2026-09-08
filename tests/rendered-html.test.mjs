@@ -162,6 +162,10 @@ test("auto-follows long repertoire notation and evaluates the same Ode melody sh
   assert.match(reader, /Start score practice/);
   assert.match(reader, /getScorePracticeStep\(practiceSequence, practiceIndex, playedNote\.midi\)/);
   assert.match(reader, /measureNumbers=\{practiceSequence\.map/);
+  assert.match(reader, /ref=\{scorePaperRef\}/);
+  assert.match(reader, /osmdRef\.current\.FollowCursor = false/);
+  assert.match(reader, /activeViewport\.scrollTo\(\{ top: nextTop/);
+  assert.doesNotMatch(reader, /FollowCursor = next/);
   assert.match(styles, /\.notation-scroll \{[^}]*scroll-behavior: smooth/);
   assert.match(styles, /\.score-paper:has\(\.notation-reader\)/);
 });

@@ -81,6 +81,7 @@ export function ScoreReader({
   onSectionChange,
   analysis,
 }: ScoreReaderProps) {
+  const scorePaperRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const osmdRef = useRef<OpenSheetMusicDisplay | null>(null);
   const matchedNotesRef = useRef<Set<number>>(new Set());
@@ -105,6 +106,24 @@ export function ScoreReader({
   const [liveSession, setLiveSession] = useState(() => evaluateScoreSession({ tempo: practiceBpm }));
   const [lastSession, setLastSession] = useState<ScoreSessionResult | null>(null);
   const explicitScore = Boolean(practiceSequence?.length);
+
+  const keepCursorInsideScore = useCallback(() => {
+    const viewport = scorePaperRef.current;
+    const osmd = osmdRef.current;
+    if (!viewport || !osmd || osmd.cursor.Hidden) return;
+
+    window.requestAnimationFrame(() => {
+      const activeViewport = scorePaperRef.current;
+      const cursor = osmdRef.current?.cursor.cursorElement;
+      if (!activeViewport || !cursor) return;
+      const viewportRect = activeViewport.getBoundingClientRect();
+      const cursorRect = cursor.getBoundingClientRect();
+      const cursorCenter = activeViewport.scrollTop + cursorRect.top - viewportRect.top + cursorRect.height / 2;
+      const nextTop = Math.max(0, cursorCenter - activeViewport.clientHeight * 0.38);
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      activeViewport.scrollTo({ top: nextTop, behavior: reducedMotion ? "auto" : "smooth" });
+    });
+  }, []);
 
   const refreshLiveSession = useCallback(() => {
     const metrics = evaluateScoreSession({ ...sessionRef.current, tempo: targetBpm });
@@ -156,7 +175,8 @@ export function ScoreReader({
       setActiveSection(sectionIndex);
       onSectionChange?.(sectionIndex);
     }
-  }, [onSectionChange, readExpectedNotes, sections, totalMeasures]);
+    keepCursorInsideScore();
+  }, [keepCursorInsideScore, onSectionChange, readExpectedNotes, sections, totalMeasures]);
 
   const jumpToMeasure = useCallback((measure: number) => {
     if (practiceSequence?.length) {
@@ -260,6 +280,7 @@ export function ScoreReader({
       expected = readExpectedNotes();
     }
     setExpectedNotes(expected);
+    if (emptyPositionsSkipped) keepCursorInsideScore();
 
     if (!expected.includes(playedNote.midi)) {
       sessionRef.current.mistakes += 1;
@@ -315,7 +336,7 @@ export function ScoreReader({
 
     updateCursorState();
     onFeedback(`Correct. The score has moved forward${nextMeasure > completedMeasure ? ` into measure ${nextMeasure}` : ""}.`);
-  }, [explicitScore, following, jumpToMeasure, loopSection, onFeedback, onMeasureComplete, playedNote, readExpectedNotes, refreshLiveSession, resetSession, saveSession, sections, status, targetBpm, updateCursorState]);
+  }, [explicitScore, following, jumpToMeasure, keepCursorInsideScore, loopSection, onFeedback, onMeasureComplete, playedNote, readExpectedNotes, refreshLiveSession, resetSession, saveSession, sections, status, targetBpm, updateCursorState]);
 
   useEffect(() => {
     if (!explicitScore || !practiceSequence?.length || !playedNote || !following || status !== "ready") return;
@@ -396,8 +417,13 @@ export function ScoreReader({
     if (next) lastProcessedTokenRef.current = playedNote?.token ?? 0;
     setFollowing(next);
     if (osmdRef.current) {
-      osmdRef.current.FollowCursor = next;
-      if (next) osmdRef.current.cursor.show();
+      // OSMD's built-in following scrolls the browser window. Keep it disabled
+      // and move only the score-paper viewport so the live prompt stays put.
+      osmdRef.current.FollowCursor = false;
+      if (next) {
+        osmdRef.current.cursor.show();
+        keepCursorInsideScore();
+      }
       else osmdRef.current.cursor.hide();
     }
     if (next) {
@@ -463,7 +489,7 @@ export function ScoreReader({
         <div><span>Harmony</span><strong>{section.harmony}</strong></div>
       </div>
 
-      <div className={`score-paper ${status}`}>
+      <div className={`score-paper ${status}`} ref={scorePaperRef}>
         {status === "loading" && <div className="score-loading"><i /><p>Engraving the complete score…</p></div>}
         {status === "error" && <div className="score-error"><strong>The score could not be opened.</strong><p>The teaching lesson still works. Refresh once to try loading the notation again.</p></div>}
         {explicitScore && practiceSequence ? (
