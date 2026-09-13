@@ -29,6 +29,8 @@ Open `http://localhost:3000`.
 4. Allow MIDI access when the browser asks.
 5. Play a note. The live readout should show its name immediately.
 
+Cadence starts with **Pedal feel on** for its Mac sound. To sustain the CT-S1's own sound without a physical pedal, hold **FUNCTION** on the keyboard and tap **C6** once; a high confirmation tone means sustain is on. Repeat the same shortcut to turn it off. Use **Pedal feel off** in Cadence for short, crisp rhythm practice.
+
 No keyboard is required for testing. Click the on-screen piano or use the computer keys `A W S E D F T G Y H U J K`.
 
 ## Learning flow

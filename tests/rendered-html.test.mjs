@@ -205,6 +205,19 @@ test("keeps a readable live keyboard by default and offers a reversible score fo
   assert.match(styles, /\.score-focus \.score-paper \{[^}]*height: 72vh;[^}]*min-height: 560px/);
 });
 
+test("offers pedal-like continuity with USB MIDI and a browser-audio fallback", async () => {
+  const [page, pedal] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/pedal-assist.mjs", import.meta.url), "utf8"),
+  ]);
+  assert.match(page, /Pedal feel \{pedalAssist \? "on" : "off"\}/);
+  assert.match(page, /saved\.pedalAssist \?\? true/);
+  assert.match(page, /playTone\(midi\);/);
+  assert.match(page, /hold FUNCTION and tap C6/);
+  assert.match(page, /midiStatus === "connected" && \/casio\/i\.test\(deviceName\)/);
+  assert.match(pedal, /pedalAssist \? 2\.6 : 0\.42/);
+});
+
 test("keeps the AI boundary isolated and local persistence explicit", async () => {
   const [page, coach, curriculum, hosting] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),

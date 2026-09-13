@@ -14,6 +14,7 @@ import type { ImprovisationResult } from "./improvisation-lab";
 import type { HarmonyResult } from "./harmony-lab";
 import { MusicianshipLab, type EarProgress, type LivePlayedNote, type TechniqueResult } from "./musicianship-lab";
 import { PlacementAssessment, type PlacementProfile } from "./placement-assessment";
+import { toneReleaseSeconds } from "./pedal-assist.mjs";
 import { getRepertoireAnalysis, REPERTOIRE_ANALYSIS } from "./repertoire-analysis.mjs";
 import { RepertoireMicroscope, type RepertoireAnalysis } from "./repertoire-microscope";
 import { ScoreReader, type ScoreGuidanceState, type ScoreSessionResult } from "./score-reader";
@@ -68,6 +69,7 @@ type SavedState = {
   preferences: string[];
   earProgress: EarProgress;
   theoryProgress: TheoryProgress;
+  pedalAssist: boolean;
   firstVisit: string;
 };
 
@@ -146,6 +148,7 @@ export default function Home() {
   const [deviceId, setDeviceId] = useState("");
   const [midiStatus, setMidiStatus] = useState<MidiStatus>("idle");
   const [browserSound, setBrowserSound] = useState(true);
+  const [pedalAssist, setPedalAssist] = useState(true);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
   const [scoreFocusMode, setScoreFocusMode] = useState(false);
 
@@ -324,6 +327,7 @@ export default function Home() {
           setPreferences(saved.preferences ?? DEFAULT_PREFERENCES);
           setEarProgress(saved.earProgress ?? DEFAULT_EAR_PROGRESS);
           setTheoryProgress(saved.theoryProgress ?? DEFAULT_THEORY_PROGRESS);
+          setPedalAssist(saved.pedalAssist ?? true);
           setFirstVisit(saved.firstVisit ?? new Date().toISOString());
         } else {
           setFirstVisit(new Date().toISOString());
@@ -350,9 +354,9 @@ export default function Home() {
 
   useEffect(() => {
     if (!hydrated) return;
-    const state: SavedState = { completedSteps, selectedCourseId, stepIndex, practiceMinutes, sketches, scoreMeasures, scoreSessions, techniqueHistory, improvisationHistory, harmonyHistory, compositionProjects, placementProfile, reviewSchedule, exploredAnalysis, preferences, earProgress, theoryProgress, firstVisit };
+    const state: SavedState = { completedSteps, selectedCourseId, stepIndex, practiceMinutes, sketches, scoreMeasures, scoreSessions, techniqueHistory, improvisationHistory, harmonyHistory, compositionProjects, placementProfile, reviewSchedule, exploredAnalysis, preferences, earProgress, theoryProgress, pedalAssist, firstVisit };
     localStorage.setItem("cadence.education.v2", JSON.stringify(state));
-  }, [completedSteps, compositionProjects, earProgress, exploredAnalysis, firstVisit, harmonyHistory, hydrated, improvisationHistory, placementProfile, practiceMinutes, preferences, reviewSchedule, scoreMeasures, scoreSessions, selectedCourseId, sketches, stepIndex, techniqueHistory, theoryProgress]);
+  }, [completedSteps, compositionProjects, earProgress, exploredAnalysis, firstVisit, harmonyHistory, hydrated, improvisationHistory, pedalAssist, placementProfile, practiceMinutes, preferences, reviewSchedule, scoreMeasures, scoreSessions, selectedCourseId, sketches, stepIndex, techniqueHistory, theoryProgress]);
 
   useEffect(() => {
     if (view !== "studio") return;
@@ -385,7 +389,7 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [course.id, step.id, view]);
 
-  const playTone = useCallback((midi: number, delay = 0, duration = 0.42, gainValue = 0.065, force = false) => {
+  const playTone = useCallback((midi: number, delay = 0, duration?: number, gainValue = 0.065, force = false) => {
     if (!browserSound && !force) return;
     const AudioContextCtor = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextCtor) return;
@@ -395,15 +399,16 @@ export default function Home() {
     const oscillator = context.createOscillator();
     const gain = context.createGain();
     const start = context.currentTime + delay;
+    const release = toneReleaseSeconds(pedalAssist, duration);
     oscillator.type = "triangle";
     oscillator.frequency.value = 440 * 2 ** ((midi - 69) / 12);
     gain.gain.setValueAtTime(0.0001, start);
     gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + release);
     oscillator.connect(gain).connect(context.destination);
     oscillator.start(start);
-    oscillator.stop(start + duration + 0.04);
-  }, [browserSound]);
+    oscillator.stop(start + release + 0.04);
+  }, [browserSound, pedalAssist]);
 
   const playLabNotes = useCallback((notes: number[], together = false) => {
     notes.forEach((note, index) => playTone(note, together ? 0 : index * 0.72, together ? 1.05 : 0.62, 0.055, true));
@@ -473,7 +478,7 @@ export default function Home() {
     setLastNote(midi);
     scorePlayedTokenRef.current += 1;
     setScorePlayedNote({ midi, velocity, token: scorePlayedTokenRef.current });
-    if (source !== "midi") playTone(midi);
+    playTone(midi);
     if (chordName && ["C major", "G7", "A minor", "E minor"].includes(chordName)) setSelectedConcept(chordName);
 
     if (!activityRunningRef.current) {
@@ -578,7 +583,8 @@ export default function Home() {
     setDeviceId(input.id);
     setMidiStatus("connected");
     setBrowserSound(false);
-    setFeedback(`${input.name ?? "MIDI keyboard"} connected. Play any note to confirm the signal.`);
+    const isCasio = /casio/i.test(`${input.manufacturer ?? ""} ${input.name ?? ""}`);
+    setFeedback(`${input.name ?? "MIDI keyboard"} connected. Play any note to confirm the signal.${isCasio ? " For sustain without a pedal, hold FUNCTION and tap C6 on the keyboard." : ""}`);
   }, []);
 
   const refreshDevices = useCallback(() => {
@@ -591,6 +597,15 @@ export default function Home() {
       setBrowserSound(true);
     }
   }, [attachMidiInput]);
+
+  const togglePedalAssist = useCallback(() => {
+    const next = !pedalAssist;
+    setPedalAssist(next);
+    if (next && midiStatus === "connected") setBrowserSound(true);
+    setFeedback(next
+      ? "Pedal feel is on for the Mac sound. Notes will overlap gently. On a CT-S1, hold FUNCTION and tap C6 to sustain the keyboard's own sound."
+      : "Pedal feel is off. Notes will release quickly for clearer rhythm practice.");
+  }, [midiStatus, pedalAssist]);
 
   const connectMidi = useCallback(async () => {
     if (!navigator.requestMIDIAccess) {
@@ -982,7 +997,8 @@ export default function Home() {
                 )}
                 {devices.length > 1 && <select aria-label="MIDI input" value={deviceId} onChange={(event) => attachMidiInput(devices.find((item) => item.id === event.target.value))}>{devices.map((device) => <option key={device.id} value={device.id}>{device.name ?? "MIDI input"}</option>)}</select>}
                 <button className={`quiet-button ${glossaryOpen ? "selected" : ""}`} aria-expanded={glossaryOpen} onClick={() => setGlossaryOpen((value) => !value)}>Music words</button>
-                <button className="quiet-button" onClick={() => setBrowserSound((value) => !value)}>{browserSound ? "Sound on" : "Sound off"}</button>
+                <button className={`quiet-button ${pedalAssist ? "selected" : ""}`} aria-pressed={pedalAssist} title="Lengthen Cadence's Mac sound. For the CT-S1 speakers, use FUNCTION + C6." onClick={togglePedalAssist}>Pedal feel {pedalAssist ? "on" : "off"}</button>
+                <button className="quiet-button" onClick={() => setBrowserSound((value) => !value)}>Mac sound {browserSound ? "on" : "off"}</button>
                 <button className="quiet-button" onClick={connectMidi}>{midiStatus === "connected" ? "Reconnect" : "Connect MIDI"}</button>
               </div>
             </div>
@@ -1003,7 +1019,7 @@ export default function Home() {
                 <div className="metronome-control"><button className={metronomeOn ? "metronome active" : "metronome"} onClick={() => setMetronomeOn((value) => !value)}><i className={`beat beat-${beat}`} />{metronomeOn ? "Pulse on" : "Metronome"}</button><label><span>{bpm} BPM</span><input aria-label="Metronome tempo" type="range" min="48" max="132" value={bpm} onChange={(event) => setBpm(Number(event.target.value))} /></label></div>
               </div>
               <PianoKeyboard whiteNotes={whiteNotes} blackNotes={blackNotes} activeNotes={activeNotes} targetNotes={pianoTargetNotes} exactTargets={scoreGuidance.active} onNoteOn={handleNoteOn} onNoteOff={handleNoteOff} />
-              <p className="keyboard-help">{scoreGuidance.active ? "The marked keys are the next full-score note or chord. Play every marked pitch to move forward." : "Play your MIDI keyboard, tap the piano, or use A W S E D F T G Y H U J K."}</p>
+              <p className="keyboard-help">{scoreGuidance.active ? "The marked keys are the next full-score note or chord. Play every marked pitch to move forward." : midiStatus === "connected" && /casio/i.test(deviceName) ? "No pedal yet? Hold FUNCTION on your CT-S1 and tap C6 once. A high tone means sustain is on; repeat it to turn sustain off." : "Play your MIDI keyboard, tap the piano, or use A W S E D F T G Y H U J K."}</p>
             </section>}
 
             <div className="lesson-stage">
