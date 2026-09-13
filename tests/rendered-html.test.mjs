@@ -165,7 +165,7 @@ test("auto-follows long repertoire notation and evaluates the same Ode melody sh
   assert.match(reader, /setLoopSection\(false\)/);
   assert.match(reader, /onGuidanceChange\?\.\(\{/);
   assert.match(reader, /osmd\.cursor\.Iterator\.EndReached[\s\S]*Complete score finished/);
-  assert.match(reader, /getScorePracticeStep\(practiceSequence, practiceIndex, playedNote\.midi\)/);
+  assert.match(reader, /getScorePracticeStep\(practiceSequence, practiceIndex, playedNote\.midi === playableMidi \? current\.midi : playedNote\.midi\)/);
   assert.match(reader, /measureNumbers=\{practiceSequence\.map/);
   assert.match(reader, /ref=\{scorePaperRef\}/);
   assert.match(reader, /osmdRef\.current\.FollowCursor = false/);
@@ -205,17 +205,24 @@ test("keeps a readable live keyboard by default and offers a reversible score fo
   assert.match(styles, /\.score-focus \.score-paper \{[^}]*height: 72vh;[^}]*min-height: 560px/);
 });
 
-test("offers pedal-like continuity with USB MIDI and a browser-audio fallback", async () => {
-  const [page, pedal] = await Promise.all([
+test("offers score-aware automatic pedal with USB MIDI and a browser-audio fallback", async () => {
+  const [page, pedal, reader, range] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/pedal-assist.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../app/score-reader.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/keyboard-range.mjs", import.meta.url), "utf8"),
   ]);
-  assert.match(page, /Pedal feel \{pedalAssist \? "on" : "off"\}/);
-  assert.match(page, /saved\.pedalAssist \?\? true/);
+  assert.match(page, /<option value="auto">Auto<\/option>/);
+  assert.match(page, /setPedalMode\(saved\.pedalMode \?\?/);
   assert.match(page, /playTone\(midi\);/);
-  assert.match(page, /hold FUNCTION and tap C6/);
+  assert.match(page, /releaseAutoPedal\(\)/);
+  assert.match(page, /Mac sound is on so Cadence can lift and press its virtual pedal/);
   assert.match(page, /midiStatus === "connected" && \/casio\/i\.test\(deviceName\)/);
-  assert.match(pedal, /pedalAssist \? 2\.6 : 0\.42/);
+  assert.match(pedal, /pedalMode === "auto" && scoreFollowing/);
+  assert.match(pedal, /autoPedalGroup/);
+  assert.match(reader, /CT-S1 · 61 keys/);
+  assert.match(reader, /Your keyboard:/);
+  assert.match(range, /while \(fitted < range\.min\) fitted \+= 12/);
 });
 
 test("keeps the AI boundary isolated and local persistence explicit", async () => {

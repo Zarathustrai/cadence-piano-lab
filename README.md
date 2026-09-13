@@ -64,6 +64,10 @@ Below a two-staff full score, choose **Right hand**, **Left hand**, or **Both ha
 
 Use **Hear these notes** beside the hand controls to hear the current target through the computer, even with a MIDI keyboard connected. Listening never advances the score or counts as a timing error. Single-line scores also have the listening button, without unnecessary hand controls.
 
+Cadence defaults to **CT-S1 · 61 keys** for full-score practice. If a score contains a bass note below C2, the app marks the same note name one octave higher and accepts that playable substitute. Switch the score's Keyboard control to **Full piano · 88 keys** when practicing on a larger instrument.
+
+The studio's Pedal menu defaults to **Auto**. During full-score practice, Cadence sustains its Mac sound and clears the resonance at each new harmony; in single-hand melody practice it changes once per measure. Auto pedal requires **Mac sound on**. If the CT-S1 speakers make the result sound doubled, turn their volume down and listen through the Mac or headphones. **Long** gives every note a fixed 2.6-second tail, while **Off** keeps releases short.
+
 The **Musicianship Lab** contains adaptive Ear, Touch, Theory, Improvisation, and Harmony studios. The Theory Atlas covers all twelve tonal centers, major, natural minor, harmonic minor, Dorian, and Mixolydian scales, correctly spelled diatonic harmony, eleven chord qualities and extensions, inversions, function, production translation, and MIDI or on-screen chord-building proofs. Improvised phrases and chord progressions can be saved as expressive source material.
 
 The **Composition Project Studio** develops that material through an A–A′–B–A form. It teaches source selection, motif transformation, harmonic function, texture, dynamics, arrangement roles, listening reflections, and a revision ledger. A complete project can be rendered as an expressive rehearsal sketch, refined in the phrase editor, and exported as MIDI for a DAW.

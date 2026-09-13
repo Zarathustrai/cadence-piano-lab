@@ -191,6 +191,8 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .connection-state small { color: var(--muted); font-size: 12px; }
 .toolbar-actions { align-items: center; display: flex; gap: 7px; }
 .toolbar-actions select, .microscope select { background: var(--raised); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font-size: 14px; min-height: 40px; padding: 0 11px; }
+.toolbar-select { align-items: flex-start; display: flex; flex-direction: column; gap: 2px; }
+.toolbar-select > span { color: var(--muted); font-size: 11px; line-height: 1; padding-left: 2px; }
 .glossary-panel { background: oklch(0.945 0.026 252); border-bottom: 1px solid oklch(0.78 0.055 252); padding: 28px 32px 32px; }
 .glossary-heading { align-items: flex-start; display: flex; gap: 24px; justify-content: space-between; margin: 0 auto 22px; max-width: 1100px; }
 .glossary-heading h2 { font-size: 22px; letter-spacing: -.03em; margin: 7px 0 0; }
@@ -310,6 +312,9 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .score-reader-heading { align-items: flex-start; display: flex; gap: 24px; justify-content: space-between; }
 .score-reader-heading h2 { font-size: 24px; letter-spacing: -.035em; margin: 8px 0 0; }
 .score-reader-actions { display: flex; gap: 7px; }
+.score-range-control { align-items: flex-start; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+.score-range-control span { color: var(--muted); font-size: 11px; }
+.score-range-control select { background: var(--raised); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font-size: 13px; min-height: 40px; padding: 0 10px; }
 .score-tempo-control { align-items: flex-end; display: flex; flex-direction: column; gap: 4px; justify-content: center; min-width: 120px; }
 .score-tempo-control span { color: var(--muted); font-family: var(--font-mono); font-size: 11px; }
 .score-tempo-control input { accent-color: var(--primary); width: 120px; }
@@ -396,12 +401,16 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .score-rehearsal button:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
 .score-rehearsal button:disabled { opacity: .5; cursor: not-allowed; }
 .score-rehearsal p { flex-basis: 100%; margin: 0; font-size: 16px; line-height: 1.5; }
+.score-range-note { align-items: flex-start; background: var(--primary-soft); border: 1px solid oklch(0.8 0.055 252); border-radius: 11px; display: flex; flex: 1 0 100%; flex-direction: column; gap: 5px; padding: 13px 15px; }
+.score-range-note strong { font-size: 16px; }
+.score-range-note span { color: var(--muted); font-size: 15px; line-height: 1.5; }
 .measure-progress { display: flex; flex-direction: column; gap: 6px; }
 .measure-progress > div { background: var(--line); border-radius: 999px; height: 4px; overflow: hidden; }
 .measure-progress i { background: var(--success); display: block; height: 100%; }
 .measure-progress span, .expected-score-notes span, .expected-score-notes small { color: var(--muted); font-size: 11px; }
 .expected-score-notes { align-items: baseline; display: flex; flex-wrap: wrap; gap: 6px; }
 .expected-score-notes strong { font-family: var(--font-mono); font-size: 14px; }
+.expected-score-notes .range-adaptation { color: var(--primary); flex-basis: 100%; font-size: 12px; font-weight: 700; }
 .teaching-notes { border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 10px; }
 .teaching-notes article { border-left: 1px solid var(--line); min-height: 132px; padding: 22px 22px 18px; }
 .teaching-notes article:first-child { border-left: 0; padding-left: 0; }
@@ -1158,6 +1167,8 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   .score-reader-actions { width: 100%; }
   .score-reader-actions button { flex: 1; }
   .score-reader-actions { flex-wrap: wrap; }
+  .score-range-control { flex: 1 0 100%; }
+  .score-range-control select { width: 100%; }
   .score-tempo-control { align-items: flex-start; flex: 1 0 100%; }
   .score-paper { height: 390px; }
   .score-focus .score-paper { height: 62vh; min-height: 420px; }

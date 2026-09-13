@@ -78,9 +78,21 @@ try {
   await page.getByRole("button", { name: "Left hand Lower staff" }).click();
   await page.getByRole("button", { name: "Play full track", exact: true }).click();
   let leftPlayed = 0;
-  while ((await target()) !== "Finished" && leftPlayed < 500) { await playTarget(); leftPlayed++; }
+  let adaptedBassSeen = false;
+  while ((await target()) !== "Finished" && leftPlayed < 500) {
+    const adaptation = page.locator(".range-adaptation");
+    if (await adaptation.count()) {
+      const text = await adaptation.innerText();
+      assert.match(text, /(?:B1 → B2|E1 → E2)/, "the written bass note is named beside its playable substitute");
+      assert.doesNotMatch(await target(), /(?:B1|E1)/, "the requested key stays inside the CT-S1 range");
+      adaptedBassSeen = true;
+    }
+    await playTarget();
+    leftPlayed++;
+  }
   assert.equal(await target(), "Finished", "left hand also passes its final rests without getting stuck");
   assert.equal(await positions(), leftPlayed);
+  assert.ok(adaptedBassSeen, "the complete Chopin score reaches and accepts its octave-up CT-S1 bass substitute");
   await page.getByRole("button", { name: "Right hand Upper staff" }).click();
   await page.getByRole("button", { name: "Coda mm. 22–26" }).click();
   await page.getByRole("button", { name: "Loop section" }).click();
@@ -111,7 +123,7 @@ try {
   assert.ok(controls.x >= 0 && controls.x + controls.width <= 391, "hand controls fit a narrow screen");
   await page.locator(".score-rehearsal").screenshot({ path: process.env.TEST_SCREENSHOT || "/tmp/cadence-hands-mobile.png" });
   assert.deepEqual(errors, [], "no browser runtime errors");
-  console.log(`PASS: real Chopin score; ${played} right-hand and ${leftPlayed} left-hand positions; MIDI, exact key guidance, hearing, repeated chords, hand switching, persistence, scrolling, end loop, restart, and narrow-screen controls.`);
+  console.log(`PASS: real Chopin score; ${played} right-hand and ${leftPlayed} left-hand positions; MIDI, 61-key bass substitution, exact key guidance, hearing, repeated chords, hand switching, persistence, scrolling, end loop, restart, and narrow-screen controls.`);
 } finally {
   await browser.close();
 }

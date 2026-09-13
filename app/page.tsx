@@ -14,7 +14,7 @@ import type { ImprovisationResult } from "./improvisation-lab";
 import type { HarmonyResult } from "./harmony-lab";
 import { MusicianshipLab, type EarProgress, type LivePlayedNote, type TechniqueResult } from "./musicianship-lab";
 import { PlacementAssessment, type PlacementProfile } from "./placement-assessment";
-import { toneReleaseSeconds } from "./pedal-assist.mjs";
+import { autoPedalGroup, toneReleaseSeconds } from "./pedal-assist.mjs";
 import { getRepertoireAnalysis, REPERTOIRE_ANALYSIS } from "./repertoire-analysis.mjs";
 import { RepertoireMicroscope, type RepertoireAnalysis } from "./repertoire-microscope";
 import { ScoreReader, type ScoreGuidanceState, type ScoreSessionResult } from "./score-reader";
@@ -36,6 +36,9 @@ type MidiAccessLike = {
 type NoteSource = "midi" | "screen" | "typing";
 type AppView = "today" | "curriculum" | "studio" | "lab" | "assessment" | "sketchbook" | "progress";
 type MidiStatus = "idle" | "requesting" | "connected" | "unsupported" | "denied";
+type PedalMode = "auto" | "continuous" | "off";
+type KeyboardRangeMode = "61" | "full";
+type AudioVoice = { oscillator: OscillatorNode; gain: GainNode; level: number };
 
 type NoteEvent = { id: number; note: number; at: number; duration: number; velocity: number; chord?: string };
 type Sketch = EditableSketch;
@@ -69,7 +72,9 @@ type SavedState = {
   preferences: string[];
   earProgress: EarProgress;
   theoryProgress: TheoryProgress;
-  pedalAssist: boolean;
+  pedalMode?: PedalMode;
+  pedalAssist?: boolean;
+  keyboardRangeMode?: KeyboardRangeMode;
   firstVisit: string;
 };
 
@@ -148,7 +153,8 @@ export default function Home() {
   const [deviceId, setDeviceId] = useState("");
   const [midiStatus, setMidiStatus] = useState<MidiStatus>("idle");
   const [browserSound, setBrowserSound] = useState(true);
-  const [pedalAssist, setPedalAssist] = useState(true);
+  const [pedalMode, setPedalMode] = useState<PedalMode>("auto");
+  const [keyboardRangeMode, setKeyboardRangeMode] = useState<KeyboardRangeMode>("61");
   const [glossaryOpen, setGlossaryOpen] = useState(false);
   const [scoreFocusMode, setScoreFocusMode] = useState(false);
 
@@ -173,7 +179,7 @@ export default function Home() {
   const [activeScoreSection, setActiveScoreSection] = useState(0);
   const [drill, setDrill] = useState<PracticeDrill>(initialDrill);
   const [scorePlayedNote, setScorePlayedNote] = useState<LivePlayedNote>(null);
-  const [scoreGuidance, setScoreGuidance] = useState<ScoreGuidanceState>({ active: false, expectedNotes: [], currentMeasure: 1, matchedCount: 0 });
+  const [scoreGuidance, setScoreGuidance] = useState<ScoreGuidanceState>({ active: false, expectedNotes: [], rangeAdaptations: [], currentMeasure: 1, matchedCount: 0 });
   const [, setMistakes] = useState<Record<string, number>>({});
 
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -190,6 +196,8 @@ export default function Home() {
   const handleNoteOffRef = useRef<(midi: number) => void>(() => undefined);
   const scorePlayedTokenRef = useRef(0);
   const activeCreativeNotesRef = useRef<Map<number, { id: number; at: number }>>(new Map());
+  const sustainedVoicesRef = useRef<Set<AudioVoice>>(new Set());
+  const autoPedalGroupRef = useRef<string | null>(null);
 
   const course = useMemo(() => getCourse(selectedCourseId), [selectedCourseId]);
   const step = course.steps[Math.min(stepIndex, course.steps.length - 1)];
@@ -221,7 +229,9 @@ export default function Home() {
         : targetNote !== undefined ? [targetNote] : [];
   const pianoTargetNotes = scoreGuidance.active ? scoreGuidance.expectedNotes : lessonTargetNotes;
   const nextLessonDisplay = scoreGuidance.active
-    ? scoreGuidance.expectedNotes.length ? scoreGuidance.expectedNotes.map(noteName).join(" · ") : "Rest"
+    ? scoreGuidance.expectedNotes.length
+      ? `${scoreGuidance.expectedNotes.map(noteName).join(" · ")}${scoreGuidance.rangeAdaptations.length ? ` (instead of ${scoreGuidance.rangeAdaptations.map(({ written }) => noteName(written)).join(" · ")})` : ""}`
+      : "Rest"
     : lessonTargetDisplay;
   const accuracy = attempts ? Math.round((correct / attempts) * 100) : 100;
   const totalCompleted = Object.values(completedSteps).reduce((sum, ids) => sum + ids.length, 0);
@@ -327,7 +337,8 @@ export default function Home() {
           setPreferences(saved.preferences ?? DEFAULT_PREFERENCES);
           setEarProgress(saved.earProgress ?? DEFAULT_EAR_PROGRESS);
           setTheoryProgress(saved.theoryProgress ?? DEFAULT_THEORY_PROGRESS);
-          setPedalAssist(saved.pedalAssist ?? true);
+          setPedalMode(saved.pedalMode ?? (saved.pedalAssist === false ? "off" : "auto"));
+          setKeyboardRangeMode(saved.keyboardRangeMode ?? "61");
           setFirstVisit(saved.firstVisit ?? new Date().toISOString());
         } else {
           setFirstVisit(new Date().toISOString());
@@ -354,9 +365,9 @@ export default function Home() {
 
   useEffect(() => {
     if (!hydrated) return;
-    const state: SavedState = { completedSteps, selectedCourseId, stepIndex, practiceMinutes, sketches, scoreMeasures, scoreSessions, techniqueHistory, improvisationHistory, harmonyHistory, compositionProjects, placementProfile, reviewSchedule, exploredAnalysis, preferences, earProgress, theoryProgress, pedalAssist, firstVisit };
+    const state: SavedState = { completedSteps, selectedCourseId, stepIndex, practiceMinutes, sketches, scoreMeasures, scoreSessions, techniqueHistory, improvisationHistory, harmonyHistory, compositionProjects, placementProfile, reviewSchedule, exploredAnalysis, preferences, earProgress, theoryProgress, pedalMode, keyboardRangeMode, firstVisit };
     localStorage.setItem("cadence.education.v2", JSON.stringify(state));
-  }, [completedSteps, compositionProjects, earProgress, exploredAnalysis, firstVisit, harmonyHistory, hydrated, improvisationHistory, pedalAssist, placementProfile, practiceMinutes, preferences, reviewSchedule, scoreMeasures, scoreSessions, selectedCourseId, sketches, stepIndex, techniqueHistory, theoryProgress]);
+  }, [completedSteps, compositionProjects, earProgress, exploredAnalysis, firstVisit, harmonyHistory, hydrated, improvisationHistory, keyboardRangeMode, pedalMode, placementProfile, practiceMinutes, preferences, reviewSchedule, scoreMeasures, scoreSessions, selectedCourseId, sketches, stepIndex, techniqueHistory, theoryProgress]);
 
   useEffect(() => {
     if (view !== "studio") return;
@@ -389,6 +400,26 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [course.id, step.id, view]);
 
+  const releaseAutoPedal = useCallback(() => {
+    const context = audioContextRef.current;
+    if (!context) return;
+    const now = context.currentTime;
+    sustainedVoicesRef.current.forEach(({ oscillator, gain, level }) => {
+      try {
+        if (typeof gain.gain.cancelAndHoldAtTime === "function") gain.gain.cancelAndHoldAtTime(now);
+        else {
+          gain.gain.cancelScheduledValues(now);
+          gain.gain.setValueAtTime(Math.max(0.0001, level * 0.65), now);
+        }
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+        oscillator.stop(now + 0.2);
+      } catch {
+        // A voice may already have ended at its safety timeout.
+      }
+    });
+    sustainedVoicesRef.current.clear();
+  }, []);
+
   const playTone = useCallback((midi: number, delay = 0, duration?: number, gainValue = 0.065, force = false) => {
     if (!browserSound && !force) return;
     const AudioContextCtor = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -399,16 +430,28 @@ export default function Home() {
     const oscillator = context.createOscillator();
     const gain = context.createGain();
     const start = context.currentTime + delay;
-    const release = toneReleaseSeconds(pedalAssist, duration);
+    const autoSustain = pedalMode === "auto" && scoreGuidance.active && duration === undefined && delay === 0 && !force;
+    const release = toneReleaseSeconds(pedalMode, duration, autoSustain);
     oscillator.type = "triangle";
     oscillator.frequency.value = 440 * 2 ** ((midi - 69) / 12);
     gain.gain.setValueAtTime(0.0001, start);
     gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.015);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + release);
     oscillator.connect(gain).connect(context.destination);
+    if (autoSustain) {
+      const voice = { oscillator, gain, level: gainValue };
+      sustainedVoicesRef.current.add(voice);
+      oscillator.onended = () => sustainedVoicesRef.current.delete(voice);
+    }
     oscillator.start(start);
     oscillator.stop(start + release + 0.04);
-  }, [browserSound, pedalAssist]);
+  }, [browserSound, pedalMode, scoreGuidance.active]);
+
+  useEffect(() => {
+    if (pedalMode === "auto" && scoreGuidance.active) return;
+    releaseAutoPedal();
+    autoPedalGroupRef.current = null;
+  }, [pedalMode, releaseAutoPedal, scoreGuidance.active]);
 
   const playLabNotes = useCallback((notes: number[], together = false) => {
     notes.forEach((note, index) => playTone(note, together ? 0 : index * 0.72, together ? 1.05 : 0.62, 0.055, true));
@@ -478,11 +521,16 @@ export default function Home() {
     setLastNote(midi);
     scorePlayedTokenRef.current += 1;
     setScorePlayedNote({ midi, velocity, token: scorePlayedTokenRef.current });
+    if (pedalMode === "auto" && scoreGuidance.active && browserSound) {
+      const group = autoPedalGroup(scoreGuidance.expectedNotes, scoreGuidance.currentMeasure);
+      if (autoPedalGroupRef.current && group && autoPedalGroupRef.current !== group) releaseAutoPedal();
+      autoPedalGroupRef.current = group;
+    }
     playTone(midi);
     if (chordName && ["C major", "G7", "A minor", "E minor"].includes(chordName)) setSelectedConcept(chordName);
 
     if (!activityRunningRef.current) {
-      setFeedback(`${noteName(midi)} detected. Begin the activity when you are ready.`);
+      setFeedback(`${noteName(midi)} detected${source === "midi" ? " from your keyboard" : ""}. Begin the activity when you are ready.`);
       return;
     }
 
@@ -546,7 +594,7 @@ export default function Home() {
       setEvents((current) => [...current, event]);
       setFeedback(`${noteName(midi)} captured. ${events.length + 1 >= (activeStep.minNotes ?? 8) ? "You have enough material to finish or keep developing it." : "Leave space when the phrase needs to breathe."}`);
     }
-  }, [attempts, correct, createAdaptiveDrill, events.length, markStepComplete, playTone]);
+  }, [attempts, browserSound, correct, createAdaptiveDrill, events.length, markStepComplete, pedalMode, playTone, releaseAutoPedal, scoreGuidance.active, scoreGuidance.currentMeasure, scoreGuidance.expectedNotes]);
 
   const handleNoteOff = useCallback((midi: number) => {
     const next = activeNotesRef.current.filter((note) => note !== midi);
@@ -582,10 +630,10 @@ export default function Home() {
     };
     setDeviceId(input.id);
     setMidiStatus("connected");
-    setBrowserSound(false);
+    setBrowserSound(pedalMode === "auto");
     const isCasio = /casio/i.test(`${input.manufacturer ?? ""} ${input.name ?? ""}`);
-    setFeedback(`${input.name ?? "MIDI keyboard"} connected. Play any note to confirm the signal.${isCasio ? " For sustain without a pedal, hold FUNCTION and tap C6 on the keyboard." : ""}`);
-  }, []);
+    setFeedback(`${input.name ?? "MIDI keyboard"} connected. Play any note to confirm the signal.${pedalMode === "auto" ? " Mac sound is on so Cadence can lift and press its virtual pedal for you; turn down the keyboard speakers if you hear doubled notes." : isCasio ? " For continuous sustain, hold FUNCTION and tap C6 on the keyboard." : ""}`);
+  }, [pedalMode]);
 
   const refreshDevices = useCallback(() => {
     const available = Array.from(midiAccessRef.current?.inputs.values() ?? []).filter((input) => input.state !== "disconnected");
@@ -598,14 +646,17 @@ export default function Home() {
     }
   }, [attachMidiInput]);
 
-  const togglePedalAssist = useCallback(() => {
-    const next = !pedalAssist;
-    setPedalAssist(next);
-    if (next && midiStatus === "connected") setBrowserSound(true);
-    setFeedback(next
-      ? "Pedal feel is on for the Mac sound. Notes will overlap gently. On a CT-S1, hold FUNCTION and tap C6 to sustain the keyboard's own sound."
-      : "Pedal feel is off. Notes will release quickly for clearer rhythm practice.");
-  }, [midiStatus, pedalAssist]);
+  const changePedalMode = useCallback((next: PedalMode) => {
+    releaseAutoPedal();
+    autoPedalGroupRef.current = null;
+    setPedalMode(next);
+    if (next === "auto") setBrowserSound(true);
+    setFeedback(next === "auto"
+      ? "Auto pedal is ready. During score practice, Cadence clears the Mac resonance at each new harmony, or at each measure when you practice one hand."
+      : next === "continuous"
+        ? "Long pedal feel is on. Mac notes overlap for 2.6 seconds until you change this setting."
+        : "Pedal is off. Mac notes release quickly so rhythm stays clear.");
+  }, [releaseAutoPedal]);
 
   const connectMidi = useCallback(async () => {
     if (!navigator.requestMIDIAccess) {
@@ -997,7 +1048,14 @@ export default function Home() {
                 )}
                 {devices.length > 1 && <select aria-label="MIDI input" value={deviceId} onChange={(event) => attachMidiInput(devices.find((item) => item.id === event.target.value))}>{devices.map((device) => <option key={device.id} value={device.id}>{device.name ?? "MIDI input"}</option>)}</select>}
                 <button className={`quiet-button ${glossaryOpen ? "selected" : ""}`} aria-expanded={glossaryOpen} onClick={() => setGlossaryOpen((value) => !value)}>Music words</button>
-                <button className={`quiet-button ${pedalAssist ? "selected" : ""}`} aria-pressed={pedalAssist} title="Lengthen Cadence's Mac sound. For the CT-S1 speakers, use FUNCTION + C6." onClick={togglePedalAssist}>Pedal feel {pedalAssist ? "on" : "off"}</button>
+                <label className="toolbar-select">
+                  <span>Pedal</span>
+                  <select aria-label="Pedal mode" value={pedalMode} onChange={(event) => changePedalMode(event.target.value as PedalMode)}>
+                    <option value="auto">Auto</option>
+                    <option value="continuous">Long</option>
+                    <option value="off">Off</option>
+                  </select>
+                </label>
                 <button className="quiet-button" onClick={() => setBrowserSound((value) => !value)}>Mac sound {browserSound ? "on" : "off"}</button>
                 <button className="quiet-button" onClick={connectMidi}>{midiStatus === "connected" ? "Reconnect" : "Connect MIDI"}</button>
               </div>
@@ -1019,7 +1077,15 @@ export default function Home() {
                 <div className="metronome-control"><button className={metronomeOn ? "metronome active" : "metronome"} onClick={() => setMetronomeOn((value) => !value)}><i className={`beat beat-${beat}`} />{metronomeOn ? "Pulse on" : "Metronome"}</button><label><span>{bpm} BPM</span><input aria-label="Metronome tempo" type="range" min="48" max="132" value={bpm} onChange={(event) => setBpm(Number(event.target.value))} /></label></div>
               </div>
               <PianoKeyboard whiteNotes={whiteNotes} blackNotes={blackNotes} activeNotes={activeNotes} targetNotes={pianoTargetNotes} exactTargets={scoreGuidance.active} onNoteOn={handleNoteOn} onNoteOff={handleNoteOff} />
-              <p className="keyboard-help">{scoreGuidance.active ? "The marked keys are the next full-score note or chord. Play every marked pitch to move forward." : midiStatus === "connected" && /casio/i.test(deviceName) ? "No pedal yet? Hold FUNCTION on your CT-S1 and tap C6 once. A high tone means sustain is on; repeat it to turn sustain off." : "Play your MIDI keyboard, tap the piano, or use A W S E D F T G Y H U J K."}</p>
+              <p className="keyboard-help">{scoreGuidance.rangeAdaptations.length
+                ? `Your CT-S1 starts at C2. Play ${scoreGuidance.rangeAdaptations.map(({ played }) => noteName(played)).join(" and ")} for the written low ${scoreGuidance.rangeAdaptations.map(({ written }) => noteName(written)).join(" and ")}.`
+                : scoreGuidance.active
+                  ? "The marked keys are the next full-score note or chord. Play every marked pitch to move forward. Auto pedal changes the Mac resonance for you."
+                  : midiStatus === "connected" && pedalMode === "auto"
+                    ? "Auto pedal comes from the Mac. If you hear doubled notes, turn down the CT-S1 speakers and listen through the Mac or headphones."
+                    : midiStatus === "connected" && /casio/i.test(deviceName)
+                      ? "For continuous sustain from the CT-S1 itself, hold FUNCTION and tap C6 once."
+                      : "Play your MIDI keyboard, tap the piano, or use A W S E D F T G Y H U J K."}</p>
             </section>}
 
             <div className="lesson-stage">
@@ -1155,6 +1221,8 @@ export default function Home() {
                   onGuidanceChange={setScoreGuidance}
                   onGuideRequested={() => setScoreFocusMode(false)}
                   onHearNotes={(notes) => playLabNotes(notes, true)}
+                  keyboardRangeMode={keyboardRangeMode}
+                  onKeyboardRangeModeChange={setKeyboardRangeMode}
                   analysis={repertoireAnalysis ? (
                     <RepertoireMicroscope
                       analysis={repertoireAnalysis}
