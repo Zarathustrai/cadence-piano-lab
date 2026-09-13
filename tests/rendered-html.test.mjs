@@ -161,7 +161,7 @@ test("auto-follows long repertoire notation and evaluates the same Ode melody sh
   assert.match(page, /key=\{`\$\{course\.id\}:\$\{step\.id\}:\$\{activityRunning \? "guided" : "idle"\}`\}/);
   assert.match(reader, /Start score practice/);
   assert.match(reader, /Play full track/);
-  assert.match(reader, /jumpToMeasure\(1\)/);
+  assert.match(reader, /jumpToMeasure\(1, true\)/);
   assert.match(reader, /setLoopSection\(false\)/);
   assert.match(reader, /onGuidanceChange\?\.\(\{/);
   assert.match(reader, /osmd\.cursor\.Iterator\.EndReached[\s\S]*Complete score finished/);
@@ -585,7 +585,8 @@ test("turns Chopin's complete prelude into six guided score sections", async () 
   assert.match(reader, /guidedSectionIndex\?: number/);
   assert.match(reader, /startingMeasure = sections\[initialSectionIndex\]/);
   assert.match(reader, /for \(let measure = 1; measure < startingMeasure; measure \+= 1\) osmd\.cursor\.nextMeasure\(\)/);
-  assert.match(reader, /Upper staff alone[\s\S]*Lower staff alone[\s\S]*Both hands at 36 BPM/);
+  assert.match(reader, /Try one hand first using the controls below/);
+  assert.match(reader, /Build it one hand at a time/);
   assert.match(page, /guidedSectionIndex=\{step\.scoreSection\}/);
   assert.match(styles, /\.score-guided-cue/);
 });

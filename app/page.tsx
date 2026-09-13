@@ -293,7 +293,11 @@ export default function Home() {
     dueReviews,
   }), [dueReviews, earProgress, latestScoreSession, latestTechnique, nextCourse, preferences, sketches.length]);
 
-  const pianoNotes = useMemo(() => Array.from({ length: KEY_END - KEY_START + 1 }, (_, index) => KEY_START + index), []);
+  // Keep the familiar range, extending to whole octaves when a full-score target
+  // falls outside it. Score guidance must show the actual octave, not a substitute.
+  const keyboardStart = scoreGuidance.active ? Math.min(KEY_START, Math.floor(Math.min(...pianoTargetNotes, KEY_START) / 12) * 12) : KEY_START;
+  const keyboardEnd = scoreGuidance.active && Math.max(...pianoTargetNotes, KEY_END) > KEY_END ? Math.floor(Math.max(...pianoTargetNotes) / 12) * 12 + 11 : KEY_END;
+  const pianoNotes = useMemo(() => Array.from({ length: keyboardEnd - keyboardStart + 1 }, (_, index) => keyboardStart + index), [keyboardEnd, keyboardStart]);
   const whiteNotes = useMemo(() => pianoNotes.filter((note) => !BLACK_PITCHES.has(note % 12)), [pianoNotes]);
   const blackNotes = useMemo(() => pianoNotes.filter((note) => BLACK_PITCHES.has(note % 12)), [pianoNotes]);
 
@@ -387,6 +391,7 @@ export default function Home() {
     if (!AudioContextCtor) return;
     const context = audioContextRef.current ?? new AudioContextCtor();
     audioContextRef.current = context;
+    if (context.state === "suspended") void context.resume();
     const oscillator = context.createOscillator();
     const gain = context.createGain();
     const start = context.currentTime + delay;
@@ -993,11 +998,11 @@ export default function Home() {
                 <div className="next-key-readout">
                   <span>{scoreGuidance.active ? `Next in full track · measure ${scoreGuidance.currentMeasure}` : "Next in lesson"}</span>
                   <strong>{scoreGuidance.active ? nextLessonDisplay : stepComplete ? "Complete ✓" : nextLessonDisplay}</strong>
-                  {scoreGuidance.active && scoreGuidance.expectedNotes.length > 1 && <small>{scoreGuidance.matchedCount}/{scoreGuidance.expectedNotes.length} keys held</small>}
+                  {scoreGuidance.active && scoreGuidance.expectedNotes.length > 1 && <small>{scoreGuidance.matchedCount}/{scoreGuidance.expectedNotes.length} keys matched</small>}
                 </div>
                 <div className="metronome-control"><button className={metronomeOn ? "metronome active" : "metronome"} onClick={() => setMetronomeOn((value) => !value)}><i className={`beat beat-${beat}`} />{metronomeOn ? "Pulse on" : "Metronome"}</button><label><span>{bpm} BPM</span><input aria-label="Metronome tempo" type="range" min="48" max="132" value={bpm} onChange={(event) => setBpm(Number(event.target.value))} /></label></div>
               </div>
-              <PianoKeyboard whiteNotes={whiteNotes} blackNotes={blackNotes} activeNotes={activeNotes} targetNotes={pianoTargetNotes} onNoteOn={handleNoteOn} onNoteOff={handleNoteOff} />
+              <PianoKeyboard whiteNotes={whiteNotes} blackNotes={blackNotes} activeNotes={activeNotes} targetNotes={pianoTargetNotes} exactTargets={scoreGuidance.active} onNoteOn={handleNoteOn} onNoteOff={handleNoteOff} />
               <p className="keyboard-help">{scoreGuidance.active ? "The marked keys are the next full-score note or chord. Play every marked pitch to move forward." : "Play your MIDI keyboard, tap the piano, or use A W S E D F T G Y H U J K."}</p>
             </section>}
 
@@ -1133,6 +1138,7 @@ export default function Home() {
                   onSectionChange={setActiveScoreSection}
                   onGuidanceChange={setScoreGuidance}
                   onGuideRequested={() => setScoreFocusMode(false)}
+                  onHearNotes={(notes) => playLabNotes(notes, true)}
                   analysis={repertoireAnalysis ? (
                     <RepertoireMicroscope
                       analysis={repertoireAnalysis}
@@ -1295,6 +1301,7 @@ function PianoKeyboard({
   blackNotes,
   activeNotes,
   targetNotes,
+  exactTargets = false,
   onNoteOn,
   onNoteOff,
 }: {
@@ -1302,6 +1309,7 @@ function PianoKeyboard({
   blackNotes: number[];
   activeNotes: number[];
   targetNotes: number[];
+  exactTargets?: boolean;
   onNoteOn: (note: number, source?: NoteSource) => void;
   onNoteOff: (note: number) => void;
 }) {
@@ -1309,16 +1317,17 @@ function PianoKeyboard({
     const whitesBefore = whiteNotes.filter((white) => white < note).length;
     return `${(whitesBefore / whiteNotes.length) * 100}%`;
   };
+  const isTarget = (note: number) => exactTargets ? targetNotes.includes(note) : targetNotes.some((target) => target % 12 === note % 12);
   return (
     <div className="piano" aria-label="Interactive piano keyboard">
       <div className="white-keys">
         {whiteNotes.map((note) => (
-          <button key={note} aria-label={noteName(note)} className={`white-key ${activeNotes.includes(note) ? "active" : ""} ${targetNotes.some((target) => target % 12 === note % 12) ? "target" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); onNoteOn(note); }} onPointerUp={() => onNoteOff(note)} onPointerCancel={() => onNoteOff(note)}>
+          <button key={note} aria-label={noteName(note)} className={`white-key ${activeNotes.includes(note) ? "active" : ""} ${isTarget(note) ? "target" : ""}`} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); onNoteOn(note); }} onPointerUp={() => onNoteOff(note)} onPointerCancel={() => onNoteOff(note)}>
             <span>{noteName(note)}</span>
           </button>
         ))}
       </div>
-      {blackNotes.map((note) => <button key={note} aria-label={noteName(note)} className={`black-key ${activeNotes.includes(note) ? "active" : ""} ${targetNotes.some((target) => target % 12 === note % 12) ? "target" : ""}`} style={{ left: blackPosition(note) }} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); onNoteOn(note); }} onPointerUp={() => onNoteOff(note)} onPointerCancel={() => onNoteOff(note)}><span>{noteName(note)}</span></button>)}
+      {blackNotes.map((note) => <button key={note} aria-label={noteName(note)} className={`black-key ${activeNotes.includes(note) ? "active" : ""} ${isTarget(note) ? "target" : ""}`} style={{ left: blackPosition(note), width: `${70 / whiteNotes.length}%`, marginLeft: `${-35 / whiteNotes.length}%` }} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); onNoteOn(note); }} onPointerUp={() => onNoteOff(note)} onPointerCancel={() => onNoteOff(note)}><span>{noteName(note)}</span></button>)}
     </div>
   );
 }

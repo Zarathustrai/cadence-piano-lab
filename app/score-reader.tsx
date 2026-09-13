@@ -6,8 +6,11 @@ import type { ScorePosition, ScoreSection } from "./curriculum";
 import { evaluateScoreSession } from "./learning-engine.mjs";
 import { NotationStaff } from "./music-language";
 import { getScorePracticeStep, scoreTimeAtPosition } from "./score-practice.mjs";
+import { notesForHand, seekHandTarget } from "./score-hands.mjs";
 
 type PlayedNoteEvent = { midi: number; token: number } | null;
+type PracticeHand = "both" | "right" | "left";
+const HAND_LABELS = { both: "Both hands", right: "Right hand", left: "Left hand" };
 
 export type ScoreSessionResult = {
   id: string;
@@ -20,6 +23,7 @@ export type ScoreSessionResult = {
   positions: number;
   mistakes: number;
   timingSamples: number;
+  hand?: PracticeHand;
 };
 
 export type ScoreGuidanceState = {
@@ -47,6 +51,7 @@ type ScoreReaderProps = {
   onSectionChange?: (sectionIndex: number) => void;
   onGuidanceChange?: (guidance: ScoreGuidanceState) => void;
   onGuideRequested?: () => void;
+  onHearNotes?: (notes: number[]) => void;
   analysis?: ReactNode;
 };
 
@@ -61,10 +66,6 @@ type SessionCapture = {
 
 function emptySession(): SessionCapture {
   return { correct: 0, mistakes: 0, timingRatios: [], pauses: 0, lastAcceptedAt: null, lastScoreTime: null };
-}
-
-function midiFromFrequency(frequency: number) {
-  return Math.round(69 + 12 * Math.log2(frequency / 440));
 }
 
 function nameMidi(midi: number) {
@@ -90,6 +91,7 @@ export function ScoreReader({
   onSectionChange,
   onGuidanceChange,
   onGuideRequested,
+  onHearNotes,
   analysis,
 }: ScoreReaderProps) {
   const scorePaperRef = useRef<HTMLDivElement | null>(null);
@@ -99,6 +101,9 @@ export function ScoreReader({
   const lastProcessedTokenRef = useRef(0);
   const activeSectionRef = useRef(0);
   const sessionRef = useRef<SessionCapture>(emptySession());
+  const handRef = useRef<PracticeHand>("both");
+  const [hand, setHand] = useState<PracticeHand>("both");
+  const [separateHandsAvailable, setSeparateHandsAvailable] = useState(false);
   const initialSectionIndex = Math.min(Math.max(guidedSectionIndex ?? 0, 0), Math.max(0, sections.length - 1));
   const startingMeasure = sections[initialSectionIndex]?.measures[0] ?? 1;
   const requestedPracticeIndex = practiceSequence?.findIndex((position) => position.measure >= startingMeasure) ?? 0;
@@ -165,7 +170,8 @@ export function ScoreReader({
     const metrics = evaluateScoreSession({ ...sessionRef.current, tempo: targetBpm });
     const result: ScoreSessionResult = {
       id: `${Date.now()}-${sectionTitle}`,
-      section: sectionTitle,
+      section: `${sectionTitle} · ${HAND_LABELS[handRef.current]}`,
+      hand: handRef.current,
       completedAt: new Date().toISOString(),
       ...metrics,
     };
@@ -177,12 +183,7 @@ export function ScoreReader({
   const readExpectedNotes = useCallback(() => {
     const osmd = osmdRef.current;
     if (!osmd) return [];
-    return [...new Set(
-      osmd.cursor
-        .NotesUnderCursor()
-        .filter((note) => !note.isRest() && note.Pitch?.Frequency)
-        .map((note) => midiFromFrequency(note.Pitch.Frequency)),
-    )].sort((a, b) => a - b);
+    return notesForHand(osmd.cursor.NotesUnderCursor(), osmd.Sheet.Staves, handRef.current);
   }, []);
 
   const updateCursorState = useCallback(() => {
@@ -202,7 +203,7 @@ export function ScoreReader({
     keepCursorInsideScore();
   }, [keepCursorInsideScore, onSectionChange, readExpectedNotes, sections, totalMeasures]);
 
-  const jumpToMeasure = useCallback((measure: number) => {
+  const jumpToMeasure = useCallback((measure: number, fullTrack = false) => {
     if (practiceSequence?.length) {
       const nextIndex = practiceSequence.findIndex((position) => position.measure === measure);
       if (nextIndex < 0) return;
@@ -224,10 +225,13 @@ export function ScoreReader({
     if (!osmd) return;
     osmd.cursor.reset();
     for (let index = 1; index < measure; index += 1) osmd.cursor.nextMeasure();
+    const targetSection = sections.find((item) => measure >= item.measures[0] && measure <= item.measures[1]);
+    seekHandTarget(osmd.cursor, readExpectedNotes, loopSection && !fullTrack ? targetSection?.measures[1] : Infinity);
     matchedNotesRef.current.clear();
     setMatchedCount(0);
+    setPracticeComplete(false);
     updateCursorState();
-  }, [onSectionChange, practiceSequence, sections, updateCursorState]);
+  }, [loopSection, onSectionChange, practiceSequence, readExpectedNotes, sections, updateCursorState]);
 
   const chooseSection = useCallback((index: number) => {
     saveSession(sections[activeSectionRef.current]?.title ?? "Score practice");
@@ -264,6 +268,7 @@ export function ScoreReader({
         osmd.render();
         osmd.cursor.hide();
         osmdRef.current = osmd;
+        setSeparateHandsAvailable(osmd.Sheet.Staves.length === 2);
         osmd.cursor.reset();
         for (let measure = 1; measure < startingMeasure; measure += 1) osmd.cursor.nextMeasure();
         setStatus("ready");
@@ -271,14 +276,8 @@ export function ScoreReader({
         setActiveSection(initialSectionIndex);
         setCurrentMeasure(startingMeasure);
         onSectionChange?.(initialSectionIndex);
-        setExpectedNotes(
-          [...new Set(
-            osmd.cursor
-              .NotesUnderCursor()
-              .filter((note) => !note.isRest() && note.Pitch?.Frequency)
-              .map((note) => midiFromFrequency(note.Pitch.Frequency)),
-          )].sort((a, b) => a - b),
-        );
+        setExpectedNotes(seekHandTarget(osmd.cursor, readExpectedNotes));
+        setCurrentMeasure(Math.min(totalMeasures, osmd.cursor.Iterator.CurrentMeasureIndex + 1));
       } catch {
         if (!disposed) setStatus("error");
       }
@@ -289,22 +288,17 @@ export function ScoreReader({
       osmdRef.current?.cursor.Dispose();
       osmdRef.current = null;
     };
-  }, [initialSectionIndex, onSectionChange, practiceSequence, scoreUrl, startingMeasure]);
+  }, [initialSectionIndex, onSectionChange, practiceSequence, readExpectedNotes, scoreUrl, startingMeasure, totalMeasures]);
 
   useEffect(() => {
     if (explicitScore || !playedNote || !following || status !== "ready") return;
     const osmd = osmdRef.current;
     if (!osmd) return;
+    if (playedNote.token === lastProcessedTokenRef.current) return;
+    lastProcessedTokenRef.current = playedNote.token;
 
-    let expected = readExpectedNotes();
-    let emptyPositionsSkipped = 0;
-    while (!expected.length && !osmd.cursor.Iterator.EndReached && emptyPositionsSkipped < 12) {
-      osmd.cursor.next();
-      emptyPositionsSkipped += 1;
-      expected = readExpectedNotes();
-    }
-    setExpectedNotes(expected);
-    if (emptyPositionsSkipped) keepCursorInsideScore();
+    const expected = readExpectedNotes();
+    if (!expected.length) return;
 
     if (!expected.includes(playedNote.midi)) {
       sessionRef.current.mistakes += 1;
@@ -322,7 +316,7 @@ export function ScoreReader({
     const complete = expected.every((note) => matchedNotesRef.current.has(note));
     if (!complete) {
       const remaining = expected.filter((note) => !matchedNotesRef.current.has(note));
-      onFeedback(`${nameMidi(playedNote.midi)} is in place. Keep holding and add ${remaining.map(nameMidi).join(" and ")}.`);
+      onFeedback(`${nameMidi(playedNote.midi)} is in place. Add ${remaining.map(nameMidi).join(" and ")}.`);
       return;
     }
 
@@ -346,8 +340,18 @@ export function ScoreReader({
     setMatchedCount(0);
     osmd.cursor.next();
 
+    const section = sections[activeSectionRef.current];
+    seekHandTarget(osmd.cursor, readExpectedNotes, loopSection ? section.measures[1] : Infinity);
     const nextMeasure = osmd.cursor.Iterator.CurrentMeasureIndex + 1;
-    if (nextMeasure > completedMeasure) onMeasureComplete(completedMeasure);
+    if (handRef.current === "both" && (nextMeasure > completedMeasure || osmd.cursor.Iterator.EndReached)) onMeasureComplete(completedMeasure);
+
+    if (loopSection && (nextMeasure > section.measures[1] || osmd.cursor.Iterator.EndReached)) {
+      const saved = saveSession(section.title) ?? metrics;
+      resetSession();
+      jumpToMeasure(section.measures[0]);
+      onFeedback(`${HAND_LABELS[handRef.current]}: ${section.title} complete with ${saved.accuracy}% pitch accuracy. Looping for another pass.`);
+      return;
+    }
 
     if (osmd.cursor.Iterator.EndReached) {
       const saved = saveSession(sections[activeSectionRef.current]?.title ?? "Complete score") ?? metrics;
@@ -356,15 +360,6 @@ export function ScoreReader({
       setExpectedNotes([]);
       osmd.cursor.hide();
       onFeedback(`Complete score finished at ${targetBpm} BPM. Pitch ${saved.accuracy}%, rhythm ${saved.timingSamples ? `${saved.rhythm}%` : "still calibrating"}, continuity ${saved.continuity}%.`);
-      return;
-    }
-
-    const section = sections[activeSectionRef.current];
-    if (loopSection && nextMeasure > section.measures[1]) {
-      const saved = saveSession(section.title) ?? metrics;
-      resetSession();
-      jumpToMeasure(section.measures[0]);
-      onFeedback(`${section.title} complete at ${targetBpm} BPM. Pitch ${saved.accuracy}%, rhythm ${saved.timingSamples ? `${saved.rhythm}%` : "still calibrating"}. Looping for one more musical pass.`);
       return;
     }
 
@@ -447,7 +442,7 @@ export function ScoreReader({
   const displayedSession = liveSession.positions ? liveSession : lastSession ?? liveSession;
   const toggleFollowing = () => {
     const next = !following;
-    if (next && explicitScore && practiceComplete) jumpToMeasure(section.measures[0]);
+    if (next && practiceComplete) jumpToMeasure(section.measures[0]);
     if (next) lastProcessedTokenRef.current = playedNote?.token ?? 0;
     if (next) onGuideRequested?.();
     setFollowing(next);
@@ -479,7 +474,7 @@ export function ScoreReader({
     setLoopSection(false);
     setPracticeComplete(false);
     lastProcessedTokenRef.current = playedNote?.token ?? 0;
-    jumpToMeasure(1);
+    jumpToMeasure(1, true);
     onGuideRequested?.();
     setFollowing(true);
     if (osmdRef.current) {
@@ -488,6 +483,27 @@ export function ScoreReader({
       keepCursorInsideScore();
     }
     onFeedback(`Full-track guidance started from measure 1 at ${targetBpm} BPM. Follow the blue score cursor and the marked keys above.`);
+  };
+
+  const chooseHand = (nextHand: PracticeHand) => {
+    if (hand === nextHand) return;
+    if (following) saveSession(section.title);
+    setFollowing(false);
+    osmdRef.current?.cursor.hide();
+    handRef.current = nextHand;
+    setHand(nextHand);
+    lastProcessedTokenRef.current = playedNote?.token ?? 0;
+    resetSession();
+    setLastSession(null);
+    jumpToMeasure(currentMeasure);
+    onFeedback(`${HAND_LABELS[nextHand]} selected. Start score practice when ready. ${nextHand === "both" ? "Bring the two parts together." : `Play only the ${nextHand === "right" ? "upper" : "lower"} staff; the other part is skipped.`}`);
+  };
+
+  const hearTarget = () => {
+    onHearNotes?.(expectedNotes);
+    // Listening is rehearsal, not a played note or a hesitation to be graded.
+    sessionRef.current.lastAcceptedAt = null;
+    sessionRef.current.lastScoreTime = null;
   };
 
   return (
@@ -533,7 +549,7 @@ export function ScoreReader({
       {guidedSectionIndex !== undefined && (
         <div className="score-guided-cue" role="note">
           <strong>Today, begin with {sections[initialSectionIndex]?.title}</strong>
-          <span>1. Upper staff alone. 2. Lower staff alone. 3. Both hands at 36 BPM. 4. Start score practice.</span>
+          <span>Try one hand first using the controls below. Then bring both parts together at a comfortable tempo.</span>
         </div>
       )}
 
@@ -572,14 +588,27 @@ export function ScoreReader({
         <button onClick={() => jumpToMeasure(Math.max(1, currentMeasure - 1))} disabled={status !== "ready" || currentMeasure <= 1}>← Previous measure</button>
         <div className="measure-progress">
           <div><i style={{ width: `${(sectionCompleted / sectionLength) * 100}%` }} /></div>
-          <span>{sectionCompleted} of {sectionLength} measures heard correctly</span>
+          <span>{sectionCompleted} of {sectionLength} measures heard correctly{separateHandsAvailable ? " · both hands" : ""}</span>
         </div>
         <div className="expected-score-notes">
-          <span>{following ? "Now play" : "Cursor notes"}</span>
-          <strong>{expectedNotes.length ? expectedNotes.map(nameMidi).join(" · ") : "Rest"}</strong>
-          {expectedNotes.length > 1 && <small>{matchedCount}/{expectedNotes.length} held</small>}
+          <span>{following ? "Now play" : "Cursor notes"}{hand !== "both" ? ` · ${HAND_LABELS[hand]}` : ""}</span>
+          <strong>{practiceComplete ? "Finished" : expectedNotes.length ? expectedNotes.map(nameMidi).join(" · ") : "No notes here"}</strong>
+          {expectedNotes.length > 1 && <small>{matchedCount}/{expectedNotes.length} matched</small>}
         </div>
         <button onClick={() => jumpToMeasure(Math.min(totalMeasures, currentMeasure + 1))} disabled={status !== "ready" || currentMeasure >= totalMeasures}>Next measure →</button>
+      </div>
+
+      <div className="score-rehearsal">
+        {separateHandsAvailable && <fieldset disabled={status !== "ready" || lessonActivityRunning}>
+          <legend>Build it one hand at a time</legend>
+          <div className="score-hand-options">{(["right", "left", "both"] as const).map((mode) => (
+            <button key={mode} type="button" aria-pressed={hand === mode} onClick={() => chooseHand(mode)}>
+              <strong>{HAND_LABELS[mode]}</strong><span>{mode === "right" ? "Upper staff" : mode === "left" ? "Lower staff" : "Bring them together"}</span>
+            </button>
+          ))}</div>
+        </fieldset>}
+        {onHearNotes && <button className="score-hear" type="button" onClick={hearTarget} disabled={status !== "ready" || !expectedNotes.length || practiceComplete || lessonActivityRunning}>♪ Hear these notes</button>}
+        <p>{hand === "both" ? "Listen, find the keys, then play. Hearing the example never advances the score." : "Only your selected hand is checked. Your session is saved separately; both-hand progress stays unchanged."}</p>
       </div>
 
       <div className="score-session-metrics" aria-label="Live score practice assessment">

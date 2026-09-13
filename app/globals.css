@@ -385,6 +385,17 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .score-transport { align-items: center; background: var(--raised); border: 1px solid var(--line); border-top: 0; display: grid; gap: 15px; grid-template-columns: auto 1fr 1fr auto; min-height: 72px; padding: 10px 12px; }
 .score-transport > button { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-size: 12px; min-height: 40px; padding: 0 12px; }
 .score-transport > button:hover { border-color: var(--primary); }
+.score-rehearsal { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; border: 1px solid var(--line); border-top: 0; padding: 20px; background: var(--surface); }
+.score-rehearsal fieldset { border: 0; padding: 0; margin: 0; flex: 1 1 420px; min-width: 0; }
+.score-rehearsal legend { font-size: 18px; margin-bottom: 10px; }
+.score-hand-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.score-hand-options button, .score-hear { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; background: var(--raised); color: inherit; cursor: pointer; font-size: 18px; min-height: 48px; }
+.score-hand-options button { flex: 1 1 130px; text-align: left; }
+.score-hand-options button span { display: block; font-size: 15px; margin-top: 4px; }
+.score-hand-options button[aria-pressed="true"] { border-color: var(--primary); color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+.score-rehearsal button:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+.score-rehearsal button:disabled { opacity: .5; cursor: not-allowed; }
+.score-rehearsal p { flex-basis: 100%; margin: 0; font-size: 16px; line-height: 1.5; }
 .measure-progress { display: flex; flex-direction: column; gap: 6px; }
 .measure-progress > div { background: var(--line); border-radius: 999px; height: 4px; overflow: hidden; }
 .measure-progress i { background: var(--success); display: block; height: 100%; }

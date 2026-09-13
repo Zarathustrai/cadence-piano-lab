@@ -56,6 +56,12 @@ Cadence assumes no music-reading vocabulary. New terms are translated in the les
 
 The full local score library includes Beethoven's *Ode to Joy*, Bach's *Prelude in C major*, Petzold's *Minuet in G*, Satie's *Gymnopédie No. 1*, and Chopin's *Prelude in E minor*. Each work has section-level harmonic analysis, voice-leading explanations, listening prompts, and playable experiments.
 
+### Learn a full piece one hand at a time
+
+Below a two-staff full score, choose **Right hand**, **Left hand**, or **Both hands**, then **Start score practice** (section loop) or **Play full track** (from the beginning). The guide checks the selected written staff, including notes that cross middle C, and skips the other hand's entries. Changing hands pauses practice and returns to the beginning of the current measure. Hand-specific sessions are saved separately; only both-hand practice adds completed measures.
+
+Use **Hear these notes** beside the hand controls to hear the current target through the computer, even with a MIDI keyboard connected. Listening never advances the score or counts as a timing error. Single-line scores also have the listening button, without unnecessary hand controls.
+
 The **Musicianship Lab** contains adaptive Ear, Touch, Theory, Improvisation, and Harmony studios. The Theory Atlas covers all twelve tonal centers, major, natural minor, harmonic minor, Dorian, and Mixolydian scales, correctly spelled diatonic harmony, eleven chord qualities and extensions, inversions, function, production translation, and MIDI or on-screen chord-building proofs. Improvised phrases and chord progressions can be saved as expressive source material.
 
 The **Composition Project Studio** develops that material through an A–A′–B–A form. It teaches source selection, motif transformation, harmonic function, texture, dynamics, arrangement roles, listening reflections, and a revision ledger. A complete project can be rendered as an expressive rehearsal sketch, refined in the phrase editor, and exported as MIDI for a DAW.
@@ -74,3 +80,5 @@ npm test
 ```
 
 `npm test` creates the production build and checks the rendered app, Web MIDI progression, chord recognition, full score archives, expressive MIDI, adaptive review, harmony and improvisation analysis, composition form assembly, local persistence, and the isolated coaching layer.
+
+For an interactive score regression test, install Playwright separately (`npm install --no-save playwright` and `npx playwright install chromium`), start the app, then run `node tests/score-hands.browser.mjs`. It uses an isolated browser and simulated Web MIDI, never a personal browser profile or real practice data. Optional variables: `TEST_URL`, `CHROME_PATH`, and `PLAYWRIGHT_MODULE` (an existing Playwright module path).
