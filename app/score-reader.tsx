@@ -22,6 +22,13 @@ export type ScoreSessionResult = {
   timingSamples: number;
 };
 
+export type ScoreGuidanceState = {
+  active: boolean;
+  expectedNotes: number[];
+  currentMeasure: number;
+  matchedCount: number;
+};
+
 type ScoreReaderProps = {
   title: string;
   composer: string;
@@ -38,6 +45,8 @@ type ScoreReaderProps = {
   onFeedback: (message: string) => void;
   onSessionResult: (result: ScoreSessionResult) => void;
   onSectionChange?: (sectionIndex: number) => void;
+  onGuidanceChange?: (guidance: ScoreGuidanceState) => void;
+  onGuideRequested?: () => void;
   analysis?: ReactNode;
 };
 
@@ -79,6 +88,8 @@ export function ScoreReader({
   onFeedback,
   onSessionResult,
   onSectionChange,
+  onGuidanceChange,
+  onGuideRequested,
   analysis,
 }: ScoreReaderProps) {
   const scorePaperRef = useRef<HTMLDivElement | null>(null);
@@ -106,6 +117,19 @@ export function ScoreReader({
   const [liveSession, setLiveSession] = useState(() => evaluateScoreSession({ tempo: practiceBpm }));
   const [lastSession, setLastSession] = useState<ScoreSessionResult | null>(null);
   const explicitScore = Boolean(practiceSequence?.length);
+
+  useEffect(() => {
+    onGuidanceChange?.({
+      active: following && status === "ready" && !practiceComplete && !lessonActivityRunning,
+      expectedNotes: following && !practiceComplete ? expectedNotes : [],
+      currentMeasure,
+      matchedCount,
+    });
+  }, [currentMeasure, expectedNotes, following, lessonActivityRunning, matchedCount, onGuidanceChange, practiceComplete, status]);
+
+  useEffect(() => () => {
+    onGuidanceChange?.({ active: false, expectedNotes: [], currentMeasure: 1, matchedCount: 0 });
+  }, [onGuidanceChange]);
 
   const keepCursorInsideScore = useCallback(() => {
     const viewport = scorePaperRef.current;
@@ -325,6 +349,16 @@ export function ScoreReader({
     const nextMeasure = osmd.cursor.Iterator.CurrentMeasureIndex + 1;
     if (nextMeasure > completedMeasure) onMeasureComplete(completedMeasure);
 
+    if (osmd.cursor.Iterator.EndReached) {
+      const saved = saveSession(sections[activeSectionRef.current]?.title ?? "Complete score") ?? metrics;
+      setPracticeComplete(true);
+      setFollowing(false);
+      setExpectedNotes([]);
+      osmd.cursor.hide();
+      onFeedback(`Complete score finished at ${targetBpm} BPM. Pitch ${saved.accuracy}%, rhythm ${saved.timingSamples ? `${saved.rhythm}%` : "still calibrating"}, continuity ${saved.continuity}%.`);
+      return;
+    }
+
     const section = sections[activeSectionRef.current];
     if (loopSection && nextMeasure > section.measures[1]) {
       const saved = saveSession(section.title) ?? metrics;
@@ -415,6 +449,7 @@ export function ScoreReader({
     const next = !following;
     if (next && explicitScore && practiceComplete) jumpToMeasure(section.measures[0]);
     if (next) lastProcessedTokenRef.current = playedNote?.token ?? 0;
+    if (next) onGuideRequested?.();
     setFollowing(next);
     if (osmdRef.current) {
       // OSMD's built-in following scrolls the browser window. Keep it disabled
@@ -436,6 +471,25 @@ export function ScoreReader({
     }
   };
 
+  const startFullTrack = () => {
+    if (following) saveSession(section.title);
+    resetSession();
+    matchedNotesRef.current.clear();
+    setMatchedCount(0);
+    setLoopSection(false);
+    setPracticeComplete(false);
+    lastProcessedTokenRef.current = playedNote?.token ?? 0;
+    jumpToMeasure(1);
+    onGuideRequested?.();
+    setFollowing(true);
+    if (osmdRef.current) {
+      osmdRef.current.FollowCursor = false;
+      osmdRef.current.cursor.show();
+      keepCursorInsideScore();
+    }
+    onFeedback(`Full-track guidance started from measure 1 at ${targetBpm} BPM. Follow the blue score cursor and the marked keys above.`);
+  };
+
   return (
     <section className="score-reader" aria-label={`Full score for ${title}`}>
       <div className="score-reader-heading">
@@ -452,6 +506,7 @@ export function ScoreReader({
           >
             <i /> {following ? "Pause score practice" : "Start score practice"}
           </button>
+          <button className="score-full-track" onClick={startFullTrack} disabled={status !== "ready" || lessonActivityRunning}>Play full track</button>
           <button className={loopSection ? "score-loop active" : "score-loop"} onClick={() => setLoopSection((value) => !value)} aria-pressed={loopSection}>↻ Loop section</button>
           <label className="score-tempo-control"><span>{targetBpm} BPM</span><input aria-label="Score practice tempo" type="range" min="36" max="126" value={targetBpm} onChange={(event) => {
             const nextTempo = Number(event.target.value);

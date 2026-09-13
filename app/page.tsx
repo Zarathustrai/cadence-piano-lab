@@ -16,7 +16,7 @@ import { MusicianshipLab, type EarProgress, type LivePlayedNote, type TechniqueR
 import { PlacementAssessment, type PlacementProfile } from "./placement-assessment";
 import { getRepertoireAnalysis, REPERTOIRE_ANALYSIS } from "./repertoire-analysis.mjs";
 import { RepertoireMicroscope, type RepertoireAnalysis } from "./repertoire-microscope";
-import { ScoreReader, type ScoreSessionResult } from "./score-reader";
+import { ScoreReader, type ScoreGuidanceState, type ScoreSessionResult } from "./score-reader";
 import type { TheoryProgress } from "./theory-lab";
 
 type MidiInputLike = {
@@ -170,6 +170,7 @@ export default function Home() {
   const [activeScoreSection, setActiveScoreSection] = useState(0);
   const [drill, setDrill] = useState<PracticeDrill>(initialDrill);
   const [scorePlayedNote, setScorePlayedNote] = useState<LivePlayedNote>(null);
+  const [scoreGuidance, setScoreGuidance] = useState<ScoreGuidanceState>({ active: false, expectedNotes: [], currentMeasure: 1, matchedCount: 0 });
   const [, setMistakes] = useState<Record<string, number>>({});
 
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -203,18 +204,22 @@ export default function Home() {
   const liveKeyCaption = activeNotes.length
     ? "Pressed now"
     : lastNote !== null ? "Last key played" : "Waiting for your keyboard";
-  const nextLessonDisplay = step.kind === "chord"
+  const lessonTargetDisplay = step.kind === "chord"
     ? step.targetName ?? "Build the chord"
     : step.kind === "sequence" && step.notation?.showNames === false
       ? "Read the staff"
       : targetNote !== undefined ? noteName(targetNote) : "Explore freely";
-  const pianoTargetNotes = reviewMode && !reviewRevealed
+  const lessonTargetNotes = reviewMode && !reviewRevealed
     ? []
     : step.kind === "chord"
       ? step.targetChord ?? []
       : step.notation?.showNames === false
         ? []
         : targetNote !== undefined ? [targetNote] : [];
+  const pianoTargetNotes = scoreGuidance.active ? scoreGuidance.expectedNotes : lessonTargetNotes;
+  const nextLessonDisplay = scoreGuidance.active
+    ? scoreGuidance.expectedNotes.length ? scoreGuidance.expectedNotes.map(noteName).join(" · ") : "Rest"
+    : lessonTargetDisplay;
   const accuracy = attempts ? Math.round((correct / attempts) * 100) : 100;
   const totalCompleted = Object.values(completedSteps).reduce((sum, ids) => sum + ids.length, 0);
   const overallProgress = Math.round((totalCompleted / getStepCount()) * 100);
@@ -986,13 +991,14 @@ export default function Home() {
                   <div><strong>{liveKeyDisplay}</strong><span>{liveKeyCaption}{liveChord ? ` · ${liveChord}` : ""}</span></div>
                 </div>
                 <div className="next-key-readout">
-                  <span>Next in lesson</span>
-                  <strong>{stepComplete ? "Complete ✓" : nextLessonDisplay}</strong>
+                  <span>{scoreGuidance.active ? `Next in full track · measure ${scoreGuidance.currentMeasure}` : "Next in lesson"}</span>
+                  <strong>{scoreGuidance.active ? nextLessonDisplay : stepComplete ? "Complete ✓" : nextLessonDisplay}</strong>
+                  {scoreGuidance.active && scoreGuidance.expectedNotes.length > 1 && <small>{scoreGuidance.matchedCount}/{scoreGuidance.expectedNotes.length} keys held</small>}
                 </div>
                 <div className="metronome-control"><button className={metronomeOn ? "metronome active" : "metronome"} onClick={() => setMetronomeOn((value) => !value)}><i className={`beat beat-${beat}`} />{metronomeOn ? "Pulse on" : "Metronome"}</button><label><span>{bpm} BPM</span><input aria-label="Metronome tempo" type="range" min="48" max="132" value={bpm} onChange={(event) => setBpm(Number(event.target.value))} /></label></div>
               </div>
               <PianoKeyboard whiteNotes={whiteNotes} blackNotes={blackNotes} activeNotes={activeNotes} targetNotes={pianoTargetNotes} onNoteOn={handleNoteOn} onNoteOff={handleNoteOff} />
-              <p className="keyboard-help">Play your MIDI keyboard, tap the piano, or use A W S E D F T G Y H U J K.</p>
+              <p className="keyboard-help">{scoreGuidance.active ? "The marked keys are the next full-score note or chord. Play every marked pitch to move forward." : "Play your MIDI keyboard, tap the piano, or use A W S E D F T G Y H U J K."}</p>
             </section>}
 
             <div className="lesson-stage">
@@ -1125,6 +1131,8 @@ export default function Home() {
                   onFeedback={setFeedback}
                   onSessionResult={recordScoreSession}
                   onSectionChange={setActiveScoreSection}
+                  onGuidanceChange={setScoreGuidance}
+                  onGuideRequested={() => setScoreFocusMode(false)}
                   analysis={repertoireAnalysis ? (
                     <RepertoireMicroscope
                       analysis={repertoireAnalysis}

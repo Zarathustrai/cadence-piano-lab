@@ -313,10 +313,12 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .score-tempo-control { align-items: flex-end; display: flex; flex-direction: column; gap: 4px; justify-content: center; min-width: 120px; }
 .score-tempo-control span { color: var(--muted); font-family: var(--font-mono); font-size: 11px; }
 .score-tempo-control input { accent-color: var(--primary); width: 120px; }
-.score-follow, .score-loop { align-items: center; background: var(--raised); border: 1px solid var(--line); border-radius: 9px; cursor: pointer; display: inline-flex; font-size: 13px; font-weight: 700; gap: 7px; min-height: 44px; padding: 0 12px; }
+.score-follow, .score-full-track, .score-loop { align-items: center; background: var(--raised); border: 1px solid var(--line); border-radius: 9px; cursor: pointer; display: inline-flex; font-size: 13px; font-weight: 700; gap: 7px; min-height: 44px; padding: 0 12px; }
 .score-follow { background: var(--primary); border-color: var(--primary); color: var(--raised); }
-.score-follow:hover, .score-loop:hover { border-color: var(--primary); }
+.score-follow:hover, .score-full-track:hover, .score-loop:hover { border-color: var(--primary); }
 .score-follow:hover { background: var(--primary-hover); }
+.score-full-track { background: var(--primary-soft); border-color: oklch(0.8 0.055 252); color: var(--primary); }
+.score-follow:disabled, .score-full-track:disabled, .score-loop:disabled { cursor: not-allowed; opacity: .52; }
 .score-follow.active, .score-loop.active { background: var(--primary-soft); border-color: oklch(0.76 0.08 252); color: var(--primary); }
 .score-follow i { background: var(--faint); border-radius: 50%; height: 7px; width: 7px; }
 .score-follow.active i { background: var(--success); box-shadow: 0 0 0 4px oklch(0.56 0.11 155 / .13); }
@@ -406,6 +408,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .next-key-readout { border-left: 1px solid var(--line-strong); display: flex; flex-direction: column; gap: 5px; padding-left: 22px; }
 .next-key-readout span { color: var(--muted); font-size: 12px; }
 .next-key-readout strong { font-family: var(--font-mono); font-size: 18px; }
+.next-key-readout small { color: var(--primary); font-size: 12px; font-weight: 700; }
 .metronome-control { align-items: center; display: flex; gap: 13px; }
 .metronome { align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; cursor: pointer; display: flex; font-size: 13px; gap: 7px; min-height: 40px; padding: 0 12px; }
 .metronome.active { color: var(--primary); }

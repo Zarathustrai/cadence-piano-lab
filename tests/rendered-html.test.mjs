@@ -160,6 +160,11 @@ test("auto-follows long repertoire notation and evaluates the same Ode melody sh
   assert.match(page, /course\.repertoire && sequenceNotes\.length >= 10/);
   assert.match(page, /key=\{`\$\{course\.id\}:\$\{step\.id\}:\$\{activityRunning \? "guided" : "idle"\}`\}/);
   assert.match(reader, /Start score practice/);
+  assert.match(reader, /Play full track/);
+  assert.match(reader, /jumpToMeasure\(1\)/);
+  assert.match(reader, /setLoopSection\(false\)/);
+  assert.match(reader, /onGuidanceChange\?\.\(\{/);
+  assert.match(reader, /osmd\.cursor\.Iterator\.EndReached[\s\S]*Complete score finished/);
   assert.match(reader, /getScorePracticeStep\(practiceSequence, practiceIndex, playedNote\.midi\)/);
   assert.match(reader, /measureNumbers=\{practiceSequence\.map/);
   assert.match(reader, /ref=\{scorePaperRef\}/);
@@ -181,6 +186,9 @@ test("keeps a readable live keyboard by default and offers a reversible score fo
   assert.ok(dockAt > 0 && dockAt < lessonAt, "the live piano appears before the lesson content");
   assert.match(page, /Current key/);
   assert.match(page, /Next in lesson/);
+  assert.match(page, /Next in full track/);
+  assert.match(page, /scoreGuidance\.active \? scoreGuidance\.expectedNotes : lessonTargetNotes/);
+  assert.match(page, /onGuidanceChange=\{setScoreGuidance\}/);
   assert.match(page, /aria-live="polite"/);
   assert.match(page, /<span>\{noteName\(note\)\}<\/span>/);
   assert.match(styles, /\.practice-dock \{[^}]*position: sticky;[^}]*top: 130px;/);
