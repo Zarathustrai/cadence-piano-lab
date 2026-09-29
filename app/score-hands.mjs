@@ -2,7 +2,10 @@
 export function notesForHand(notes, staves, hand = "both") {
   const staff = hand === "right" ? staves[0] : hand === "left" ? staves[1] : null;
   return [...new Set(notes
-    .filter((note) => !note.isRest() && note.Pitch?.Frequency && (hand === "both" || note.ParentStaff === staff))
+    // A tied continuation is visible at the cursor but is not a new key attack.
+    .filter((note) => !note.isRest() && note.Pitch?.Frequency && !note.IsGraceNote
+      && (!note.NoteTie || note.NoteTie.StartNote === note)
+      && (hand === "both" || note.ParentStaff === staff))
     .map((note) => Math.round(69 + 12 * Math.log2(note.Pitch.Frequency / 440))))].sort((a, b) => a - b);
 }
 

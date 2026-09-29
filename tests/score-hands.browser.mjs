@@ -60,6 +60,14 @@ try {
   assert.equal(await positions(), 1, "one chord advances once, including React rerenders");
   assert.equal(await target(), beforeHear, "repeated written chord still needs a fresh attack");
   assert.ok(Math.abs(await page.evaluate(() => scrollY) - scrollBefore) < 2, "playing does not scroll the window");
+  await page.evaluate(async () => {
+    window.testMidi.onmidimessage({ data: new Uint8Array([0x90, 55, 80]) });
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    window.testMidi.onmidimessage({ data: new Uint8Array([0x90, 55, 80]) });
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    window.testMidi.onmidimessage({ data: new Uint8Array([0x80, 55, 0]) });
+  });
+  assert.equal(await positions(), 1, "duplicate note-on while G3 remains held cannot consume a repeated score position");
   await playTarget();
   assert.equal(await positions(), 2);
   await page.getByRole("button", { name: "Right hand Upper staff" }).click();

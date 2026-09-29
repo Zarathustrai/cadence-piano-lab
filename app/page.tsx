@@ -513,7 +513,10 @@ export default function Home() {
   }, [accuracy, course.title]);
 
   const handleNoteOn = useCallback((midi: number, source: NoteSource = "screen", velocity = 92) => {
-    const nextActive = activeNotesRef.current.includes(midi) ? activeNotesRef.current : [...activeNotesRef.current, midi];
+    // Some keyboards resend note-on while a key is still down. It is not a
+    // second physical press and must not advance repeated score notes.
+    if (activeNotesRef.current.includes(midi)) return;
+    const nextActive = [...activeNotesRef.current, midi];
     activeNotesRef.current = nextActive;
     setActiveNotes(nextActive);
     const chordName = detectChord(nextActive);
@@ -962,7 +965,7 @@ export default function Home() {
           <div className="view-intro">
             <p className="eyebrow">The complete path</p>
             <h1>Technique serves understanding.<br />Understanding leads to a voice.</h1>
-            <p>{COURSES.length} courses, {getStepCount()} guided learning experiences, five complete repertoire study paths, and a bridge into your production practice.</p>
+            <p>{COURSES.length} courses, {getStepCount()} guided learning experiences, seven complete repertoire study paths, and a bridge into your production practice.</p>
           </div>
           {CHAPTERS.map((chapter) => (
             <section className="chapter-section" key={chapter}>

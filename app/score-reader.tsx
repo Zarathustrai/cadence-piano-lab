@@ -127,6 +127,8 @@ export function ScoreReader({
   const initialWrittenNotes = initialScorePosition ? [initialScorePosition.midi] : [];
   const [writtenExpectedNotes, setWrittenExpectedNotes] = useState<number[]>(initialWrittenNotes);
   const [expectedNotes, setExpectedNotes] = useState<number[]>(adaptNotesToRange(initialWrittenNotes, keyboardRangeMode === "61"));
+  const [rightWrittenNotes, setRightWrittenNotes] = useState<number[]>([]);
+  const [leftWrittenNotes, setLeftWrittenNotes] = useState<number[]>([]);
   const [matchedCount, setMatchedCount] = useState(0);
   const [targetBpm, setTargetBpm] = useState(practiceBpm);
   const [liveSession, setLiveSession] = useState(() => evaluateScoreSession({ tempo: practiceBpm }));
@@ -202,11 +204,16 @@ export function ScoreReader({
     return result;
   }, [onSessionResult, targetBpm]);
 
-  const readWrittenExpectedNotes = useCallback(() => {
+  const readWrittenExpectedNotes = useCallback((selectedHand: PracticeHand = handRef.current) => {
     const osmd = osmdRef.current;
     if (!osmd) return [];
-    return notesForHand(osmd.cursor.NotesUnderCursor(), osmd.Sheet.Staves, handRef.current);
+    return notesForHand(osmd.cursor.NotesUnderCursor(), osmd.Sheet.Staves, selectedHand);
   }, []);
+
+  const updateHandTargets = useCallback(() => {
+    setRightWrittenNotes(readWrittenExpectedNotes("right"));
+    setLeftWrittenNotes(readWrittenExpectedNotes("left"));
+  }, [readWrittenExpectedNotes]);
 
   const readExpectedNotes = useCallback(() => fitToKeyboard(readWrittenExpectedNotes()), [fitToKeyboard, readWrittenExpectedNotes]);
 
@@ -216,6 +223,7 @@ export function ScoreReader({
     const measure = Math.min(totalMeasures, osmd.cursor.Iterator.CurrentMeasureIndex + 1);
     setCurrentMeasure(measure);
     setScoreTarget(readWrittenExpectedNotes());
+    updateHandTargets();
     const sectionIndex = sections.findIndex(
       (section) => measure >= section.measures[0] && measure <= section.measures[1],
     );
@@ -225,7 +233,7 @@ export function ScoreReader({
       onSectionChange?.(sectionIndex);
     }
     keepCursorInsideScore();
-  }, [keepCursorInsideScore, onSectionChange, readWrittenExpectedNotes, sections, setScoreTarget, totalMeasures]);
+  }, [keepCursorInsideScore, onSectionChange, readWrittenExpectedNotes, sections, setScoreTarget, totalMeasures, updateHandTargets]);
 
   const jumpToMeasure = useCallback((measure: number, fullTrack = false) => {
     if (practiceSequence?.length) {
@@ -302,6 +310,7 @@ export function ScoreReader({
         onSectionChange?.(initialSectionIndex);
         seekHandTarget(osmd.cursor, readExpectedNotes);
         setScoreTarget(readWrittenExpectedNotes());
+        updateHandTargets();
         setCurrentMeasure(Math.min(totalMeasures, osmd.cursor.Iterator.CurrentMeasureIndex + 1));
       } catch {
         if (!disposed) setStatus("error");
@@ -313,7 +322,7 @@ export function ScoreReader({
       osmdRef.current?.cursor.Dispose();
       osmdRef.current = null;
     };
-  }, [initialSectionIndex, onSectionChange, practiceSequence, readExpectedNotes, readWrittenExpectedNotes, scoreUrl, setScoreTarget, startingMeasure, totalMeasures]);
+  }, [initialSectionIndex, onSectionChange, practiceSequence, readExpectedNotes, readWrittenExpectedNotes, scoreUrl, setScoreTarget, startingMeasure, totalMeasures, updateHandTargets]);
 
   useEffect(() => {
     if (explicitScore || !playedNote || !following || status !== "ready") return;
@@ -466,6 +475,8 @@ export function ScoreReader({
   ).filter((measure) => completedMeasures.includes(measure)).length;
   const sectionLength = section.measures[1] - section.measures[0] + 1;
   const displayedSession = liveSession.positions ? liveSession : lastSession ?? liveSession;
+  const rightNotes = fitToKeyboard(rightWrittenNotes);
+  const leftNotes = fitToKeyboard(leftWrittenNotes);
   const toggleFollowing = () => {
     const next = !following;
     if (next && practiceComplete) jumpToMeasure(section.measures[0]);
@@ -626,6 +637,10 @@ export function ScoreReader({
         <div className="expected-score-notes">
           <span>{following ? "Now play" : "Cursor notes"}{hand !== "both" ? ` · ${HAND_LABELS[hand]}` : ""}</span>
           <strong>{practiceComplete ? "Finished" : expectedNotes.length ? expectedNotes.map(nameMidi).join(" · ") : "No notes here"}</strong>
+          {separateHandsAvailable && hand === "both" && !practiceComplete && <div className="score-hand-cues" aria-label="Notes by hand">
+            <span><b>Right</b> {rightNotes.length ? rightNotes.map(nameMidi).join(" · ") : "hold / rest"}</span>
+            <span><b>Left</b> {leftNotes.length ? leftNotes.map(nameMidi).join(" · ") : "hold / rest"}</span>
+          </div>}
           {expectedNotes.length > 1 && <small>{matchedCount}/{expectedNotes.length} matched</small>}
           {rangeAdaptations.length > 0 && <small className="range-adaptation">Your keyboard: {rangeAdaptations.map(({ written, played }) => `${nameMidi(written)} → ${nameMidi(played)}`).join(" · ")}</small>}
         </div>
@@ -643,7 +658,7 @@ export function ScoreReader({
           ))}</div>
         </fieldset>}
         {onHearNotes && <button className="score-hear" type="button" onClick={hearTarget} disabled={status !== "ready" || !expectedNotes.length || practiceComplete || lessonActivityRunning}>♪ Hear these notes</button>}
-        <p>{hand === "both" ? "Listen, find the keys, then play. Hearing the example never advances the score." : "Only your selected hand is checked. Your session is saved separately; both-hand progress stays unchanged."}</p>
+        <p>{hand === "both" ? "Right and left are shown separately above. Play each new notehead once; a held or tied note does not need another press. Hearing the example never advances the score." : "Only your selected hand is checked. Your session is saved separately; both-hand progress stays unchanged."}</p>
       </div>
 
       <div className="score-session-metrics" aria-label="Live score practice assessment">

@@ -13,6 +13,18 @@ test("hand selection follows written staff even when the hands cross middle C", 
   assert.deepEqual(notesForHand(notes, [upper], "left"), []);
 });
 
+test("a tied continuation or grace note never asks for a second key press", () => {
+  const first = note(60, upper);
+  const continuation = note(60, upper);
+  const tie = { StartNote: first };
+  first.NoteTie = tie;
+  continuation.NoteTie = tie;
+  const grace = { ...note(62, upper), IsGraceNote: true };
+  assert.deepEqual(notesForHand([first, continuation, grace], [upper, lower]), [60]);
+  assert.deepEqual(notesForHand([continuation, grace], [upper, lower]), []);
+  assert.deepEqual(notesForHand([note(60, upper), note(60, upper)], [upper, lower]), [60], "true repeated attacks remain playable");
+});
+
 function fixture(positions) {
   let index = 0;
   const cursor = { Iterator: {

@@ -279,7 +279,7 @@ test("keeps the AI boundary isolated and local persistence explicit", async () =
   assert.match(curriculum, /Improvisation as conversation/);
   assert.match(curriculum, /From piano idea to production/);
   assert.match(curriculum, /completeWork: true/g);
-  assert.equal((curriculum.match(/scoreUrl: "\/scores\//g) ?? []).length, 5);
+  assert.equal((curriculum.match(/scoreUrl: "\/scores\//g) ?? []).length, 7);
   assert.match(coach, /Drop-in AI boundary/);
   assert.match(coach, /Reduce and rebuild/);
   assert.match(coach, /Transfer without cues/);
@@ -557,13 +557,14 @@ test("recognizes held chords in any inversion or octave", () => {
   assert.equal(samePitchSet([60, 64, 67], [60, 63, 67]), false);
 });
 
-test("ships five complete local MusicXML score archives and an interactive reader", async () => {
+test("ships seven complete local MusicXML scores and an interactive reader", async () => {
   const filenames = [
     "ode-to-joy.mxl",
     "bach-prelude-c.mxl",
     "minuet-in-g.mxl",
     "gymnopedie-no-1.mxl",
     "chopin-prelude-e-minor.mxl",
+    "debussy-clair-de-lune.mxl",
   ];
   const [reader, ...archives] = await Promise.all([
     readFile(new URL("../app/score-reader.tsx", import.meta.url), "utf8"),
@@ -578,11 +579,14 @@ test("ships five complete local MusicXML score archives and an interactive reade
   assert.match(reader, /evaluateScoreSession/);
   assert.match(reader, /Score practice tempo/);
   assert.match(reader, /onSessionResult/);
-  assert.equal((await readFile(new URL("../app/curriculum.ts", import.meta.url), "utf8")).match(/practiceBpm: \d/g)?.length, 5);
+  assert.equal((await readFile(new URL("../app/curriculum.ts", import.meta.url), "utf8")).match(/practiceBpm: \d/g)?.length, 7);
   for (const archive of archives) {
     assert.equal(archive.subarray(0, 2).toString(), "PK");
     assert.ok(archive.length > 3000);
   }
+  const pagodes = await readFile(new URL("../public/scores/debussy-pagodes.musicxml", import.meta.url), "utf8");
+  assert.match(pagodes, /<measure number="98">/);
+  assert.match(pagodes, /<staves>2<\/staves>/);
 });
 
 test("turns Chopin's complete prelude into six guided score sections", async () => {
@@ -612,8 +616,8 @@ test("turns Chopin's complete prelude into six guided score sections", async () 
 });
 
 test("maps every complete repertoire section to causal theory and personalized transfer", () => {
-  assert.deepEqual(Object.keys(REPERTOIRE_ANALYSIS), ["ode", "bach", "minuet", "satie", "chopin"]);
-  assert.deepEqual(Object.values(REPERTOIRE_ANALYSIS).map((sections) => sections.length), [4, 5, 4, 6, 6]);
+  assert.deepEqual(Object.keys(REPERTOIRE_ANALYSIS), ["ode", "bach", "minuet", "satie", "chopin", "debussy-pagodes", "debussy-clair-de-lune"]);
+  assert.deepEqual(Object.values(REPERTOIRE_ANALYSIS).map((sections) => sections.length), [4, 5, 4, 6, 6, 4, 4]);
   assert.deepEqual(
     Object.fromEntries(Object.entries(REPERTOIRE_ANALYSIS).map(([course, sections]) => [course, sections.map((section) => section.sectionTitle)])),
     {
@@ -622,9 +626,11 @@ test("maps every complete repertoire section to causal theory and personalized t
       minuet: ["Opening dance", "First cadence", "Contrasting sequence", "Return and close"],
       satie: ["Opening atmosphere", "Theme A", "Cadential expansion", "Contrasting middle", "Return", "Final release"],
       chopin: ["Opening suspension", "Inner descent", "First cadence", "Climactic expansion", "Final return", "Coda"],
+      "debussy-pagodes": ["Resonant opening", "Patterns in motion", "Broader sonority", "Return and fade"],
+      "debussy-clair-de-lune": ["Moonlit opening", "Gathering movement", "Radiant center", "Return to stillness"],
     },
   );
-  assert.equal(repertoireAnalysisCount(), 25);
+  assert.equal(repertoireAnalysisCount(), 33);
   for (const sections of Object.values(REPERTOIRE_ANALYSIS)) {
     for (const section of sections) {
       assert.ok(section.mechanism.length > 80);
