@@ -411,6 +411,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .expected-score-notes { align-items: baseline; display: flex; flex-wrap: wrap; gap: 6px; }
 .expected-score-notes strong { font-family: var(--font-mono); font-size: 14px; }
 .expected-score-notes .range-adaptation { color: var(--primary); flex-basis: 100%; font-size: 12px; font-weight: 700; }
+.expected-score-notes .score-repeat-cue { color: var(--primary); flex-basis: 100%; font-size: 12px; font-weight: 700; }
 .score-hand-cues { display: flex; flex-basis: 100%; flex-wrap: wrap; gap: 6px 16px; }
 .expected-score-notes .score-hand-cues span { color: var(--ink); font-family: var(--font-mono); font-size: 14px; }
 .score-hand-cues b { color: var(--primary); font-family: var(--font-sans); font-size: 12px; margin-right: 6px; text-transform: uppercase; }

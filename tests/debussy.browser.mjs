@@ -44,7 +44,7 @@ try {
         window.testMidi.onmidimessage({ data: new Uint8Array([0x80, midi, 0]) });
       }, midi);
     }
-    assert.match(await page.locator(".score-session-metrics").innerText(), /1 positions/);
+    await page.waitForFunction(() => /1 positions/.test(document.querySelector(".score-session-metrics")?.innerText ?? ""));
     await page.locator(".score-paper").screenshot({ path: output });
     await page.getByRole("button", { name: "Curriculum", exact: true }).click();
   }

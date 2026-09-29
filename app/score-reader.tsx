@@ -130,6 +130,7 @@ export function ScoreReader({
   const [rightWrittenNotes, setRightWrittenNotes] = useState<number[]>([]);
   const [leftWrittenNotes, setLeftWrittenNotes] = useState<number[]>([]);
   const [matchedCount, setMatchedCount] = useState(0);
+  const [repeatedWrittenTarget, setRepeatedWrittenTarget] = useState(false);
   const [targetBpm, setTargetBpm] = useState(practiceBpm);
   const [liveSession, setLiveSession] = useState(() => evaluateScoreSession({ tempo: practiceBpm }));
   const [lastSession, setLastSession] = useState<ScoreSessionResult | null>(null);
@@ -245,6 +246,7 @@ export function ScoreReader({
       setScoreTarget([practiceSequence[nextIndex].midi]);
       matchedNotesRef.current.clear();
       setMatchedCount(0);
+      setRepeatedWrittenTarget(false);
       const sectionIndex = sections.findIndex((section) => measure >= section.measures[0] && measure <= section.measures[1]);
       if (sectionIndex >= 0) {
         activeSectionRef.current = sectionIndex;
@@ -261,6 +263,7 @@ export function ScoreReader({
     seekHandTarget(osmd.cursor, readExpectedNotes, loopSection && !fullTrack ? targetSection?.measures[1] : Infinity);
     matchedNotesRef.current.clear();
     setMatchedCount(0);
+    setRepeatedWrittenTarget(false);
     setPracticeComplete(false);
     updateCursorState();
   }, [loopSection, onSectionChange, practiceSequence, readExpectedNotes, sections, setScoreTarget, updateCursorState]);
@@ -376,6 +379,8 @@ export function ScoreReader({
 
     const section = sections[activeSectionRef.current];
     seekHandTarget(osmd.cursor, readExpectedNotes, loopSection ? section.measures[1] : Infinity);
+    const nextExpected = readExpectedNotes();
+    setRepeatedWrittenTarget(nextExpected.length === expected.length && nextExpected.every((note, index) => note === expected[index]));
     const nextMeasure = osmd.cursor.Iterator.CurrentMeasureIndex + 1;
     if (handRef.current === "both" && (nextMeasure > completedMeasure || osmd.cursor.Iterator.EndReached)) onMeasureComplete(completedMeasure);
 
@@ -637,6 +642,7 @@ export function ScoreReader({
         <div className="expected-score-notes">
           <span>{following ? "Now play" : "Cursor notes"}{hand !== "both" ? ` · ${HAND_LABELS[hand]}` : ""}</span>
           <strong>{practiceComplete ? "Finished" : expectedNotes.length ? expectedNotes.map(nameMidi).join(" · ") : "No notes here"}</strong>
+          {following && repeatedWrittenTarget && !practiceComplete && <small className="score-repeat-cue">New noteheads: play these keys again</small>}
           {separateHandsAvailable && hand === "both" && !practiceComplete && <div className="score-hand-cues" aria-label="Notes by hand">
             <span><b>Right</b> {rightNotes.length ? rightNotes.map(nameMidi).join(" · ") : "hold / rest"}</span>
             <span><b>Left</b> {leftNotes.length ? leftNotes.map(nameMidi).join(" · ") : "hold / rest"}</span>

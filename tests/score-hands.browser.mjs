@@ -59,6 +59,7 @@ try {
   await playTarget();
   assert.equal(await positions(), 1, "one chord advances once, including React rerenders");
   assert.equal(await target(), beforeHear, "repeated written chord still needs a fresh attack");
+  assert.match(await page.locator(".score-repeat-cue").innerText(), /New noteheads: play these keys again/);
   assert.ok(Math.abs(await page.evaluate(() => scrollY) - scrollBefore) < 2, "playing does not scroll the window");
   await page.evaluate(async () => {
     window.testMidi.onmidimessage({ data: new Uint8Array([0x90, 55, 80]) });
