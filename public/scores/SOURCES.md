@@ -1,5 +1,11 @@
 # Public-domain score sources
 
+## Original Cadence studies
+
+`laura-palmer-study.musicxml` (Night and clearing) and `twin-peaks-theme-study.musicxml` (Roadhouse dusk) are original eight-bar preparatory chord exercises. They are not transcriptions or complete arrangements of Laura Palmer's Theme or the Twin Peaks Theme. The lessons link to separately purchasable piano scores of the songs. Rebuild these exercises with `node scripts/build-twin-peaks-studies.mjs`; note data lives in `app/twin-peaks-studies.mjs`.
+
+## Repertoire editions
+
 The MusicXML files in this folder come from the [MuseTrainer public-domain MusicXML library](https://github.com/musetrainer/library):
 
 - `ode-to-joy.mxl`: Beethoven, *Ode to Joy*, easy piano variation.

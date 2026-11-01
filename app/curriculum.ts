@@ -1,4 +1,5 @@
 import { ODE_TO_JOY_SCORE } from "./score-practice.mjs";
+import { TWIN_PEAKS_COURSES } from "./twin-peaks-courses";
 
 export type StepKind =
   | "learn"
@@ -958,9 +959,10 @@ export const COURSES: Course[] = [
       },
     ],
   },
+  ...TWIN_PEAKS_COURSES,
   {
     id: "improv",
-    number: "18",
+    number: "20",
     chapter: "Create",
     title: "Improvisation as conversation",
     subtitle: "Motif, space, variation, response",
@@ -977,7 +979,7 @@ export const COURSES: Course[] = [
   },
   {
     id: "composition",
-    number: "19",
+    number: "21",
     chapter: "Create",
     title: "Composition: from seed to form",
     subtitle: "Develop, harmonize, arrange, revise",
@@ -994,7 +996,7 @@ export const COURSES: Course[] = [
   },
   {
     id: "production",
-    number: "20",
+    number: "22",
     chapter: "Create",
     title: "From piano idea to production",
     subtitle: "Turn harmony and performance into arrangement choices",

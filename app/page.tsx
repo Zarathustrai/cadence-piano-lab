@@ -1015,7 +1015,7 @@ export default function Home() {
               <div className="edition-note">
                 <p className="eyebrow">Study edition</p>
                 <strong>{course.repertoire.edition}</strong>
-                <span>{course.repertoire.sections.length} sections · complete path</span>
+                <span>{course.repertoire.sections.length} sections · {course.repertoire.completeWork ? "complete path" : "original preparation study"}</span>
               </div>
             )}
             {course.resources?.length ? (
@@ -1208,6 +1208,7 @@ export default function Home() {
                   key={`${course.id}:${step.id}:${activityRunning ? "guided" : "idle"}`}
                   title={course.title}
                   composer={course.repertoire.composer}
+                  studyOnly={!course.repertoire.completeWork}
                   scoreUrl={course.repertoire.scoreUrl}
                   totalMeasures={course.repertoire.totalMeasures}
                   practiceBpm={course.repertoire.practiceBpm}

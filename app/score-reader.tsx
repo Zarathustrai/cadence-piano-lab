@@ -38,6 +38,7 @@ export type ScoreGuidanceState = {
 };
 
 type ScoreReaderProps = {
+  studyOnly?: boolean;
   title: string;
   composer: string;
   scoreUrl: string;
@@ -80,6 +81,7 @@ function nameMidi(midi: number) {
 }
 
 export function ScoreReader({
+  studyOnly = false,
   title,
   composer,
   scoreUrl,
@@ -549,10 +551,10 @@ export function ScoreReader({
   };
 
   return (
-    <section className="score-reader" aria-label={`Full score for ${title}`}>
+    <section className="score-reader" aria-label={`${studyOnly ? "Study score" : "Full score"} for ${title}`}>
       <div className="score-reader-heading">
         <div>
-          <p className="eyebrow">Complete score · {composer}</p>
+          <p className="eyebrow">{studyOnly ? "Original preparation study" : "Complete score"} · {composer}</p>
           <h2>{title}</h2>
         </div>
         <div className="score-reader-actions">
@@ -571,7 +573,7 @@ export function ScoreReader({
           >
             <i /> {following ? "Pause score practice" : "Start score practice"}
           </button>
-          <button className="score-full-track" onClick={startFullTrack} disabled={status !== "ready" || lessonActivityRunning}>Play full track</button>
+          <button className="score-full-track" onClick={startFullTrack} disabled={status !== "ready" || lessonActivityRunning}>{studyOnly ? "Play whole study" : "Play full track"}</button>
           <button className={loopSection ? "score-loop active" : "score-loop"} onClick={() => setLoopSection((value) => !value)} aria-pressed={loopSection}>↻ Loop section</button>
           <label className="score-tempo-control"><span>{targetBpm} BPM</span><input aria-label="Score practice tempo" type="range" min="36" max="126" value={targetBpm} onChange={(event) => {
             const nextTempo = Number(event.target.value);
